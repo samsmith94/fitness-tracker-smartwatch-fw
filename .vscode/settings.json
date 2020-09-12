@@ -1,0 +1,9 @@
+{
+    "files.exclude": {
+        "**/output/": true,
+        "_build": true,
+        "*.code-workspace": true,
+        "*.bat": true,
+		"*.md": true
+    }
+}
