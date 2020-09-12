@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "fitness-tracker",
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"type_traits": "c"
+		}
+	}
+}
