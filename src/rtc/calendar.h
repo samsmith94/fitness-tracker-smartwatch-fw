@@ -1,3 +1,7 @@
+#ifndef CALENDAR_H
+#define CALENDAR_H
+
+
 #include <stdint.h>
 #include <stdbool.h>
 #include "time.h"
@@ -5,11 +9,21 @@
 #include "nrf_drv_rtc.h"
 #include "nrf_drv_clock.h"
 
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
+#include "nrf_log_default_backends.h"
+
 // Change the following defines to change the RTC timer used or the interrupt priority
 #define CAL_RTC                 NRF_RTC0
 #define CAL_RTC_IRQn            RTC0_IRQn
 #define CAL_RTC_IRQHandler      RTC0_IRQHandler
 #define CAL_RTC_IRQ_Priority    3
+
+extern struct tm *_time;
+extern char time_buff[50];
+extern char date_buff[50];
+extern char *week_days[7];
+
 
 // Initializes the calendar library. Run this before calling any other functions. 
 void nrf_cal_init(void);
@@ -32,3 +46,12 @@ struct tm *nrf_cal_get_time_calibrated(void);
 
 // Returns a string for printing the date and time. Turn the calibration on/off by setting the calibrate parameter. 
 char *nrf_cal_get_time_string(bool calibrated);
+
+
+
+void print_current_time(void);
+void calendar_updated(void);
+
+void set_date_and_time(void);
+
+#endif

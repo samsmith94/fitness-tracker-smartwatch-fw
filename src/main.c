@@ -106,9 +106,8 @@ int main(void)
 #include "display/st7735.h"
 //#include "display/fonts.h"
 
-//#include "gesture/apds9960_common.h"
-//#include "gesture/apds9960_proximity.h"
 #include "gesture/apds9960.h"
+#include "rtc/calendar.h"
 
 
 //#define ENABLE_LOOPBACK_TEST  /**< if defined, then this example will be a loopback test, which means that TX should be connected to RX to get data loopback. */
@@ -132,19 +131,6 @@ void uart_error_handle(app_uart_evt_t *p_event)
 /* When UART is used for communication with the host do not use flow control.*/
 #define UART_HWFC APP_UART_FLOW_CONTROL_DISABLED
 
-
-#define BYTE_TO_BINARY(byte)    \
-  (byte & 0x80 ? '1' : '0'),    \
-  (byte & 0x40 ? '1' : '0'),    \
-  (byte & 0x20 ? '1' : '0'),    \
-  (byte & 0x10 ? '1' : '0'),    \
-  (byte & 0x08 ? '1' : '0'),    \
-  (byte & 0x04 ? '1' : '0'),    \
-  (byte & 0x02 ? '1' : '0'),    \
-  (byte & 0x01 ? '1' : '0')
-
-//NRF_LOG_INFO("7|6|5|4|3|2|1|0");
-
 static inline void LOG_BINARY_DUMP(uint8_t byte)
 {
     char bin[18];
@@ -152,438 +138,68 @@ static inline void LOG_BINARY_DUMP(uint8_t byte)
     NRF_LOG_INFO("%s", bin);
 }
 
-static bool run_time_updates = false;
+/******************************************************************************/
 
-void print_current_time()
+typedef struct level {
+    struct level *next;
+    struct level *prev;
+    void (*render)(void);
+} level;
+
+
+void build_menu(struct level *current_node, struct level *prev_node, struct level *next_node, void (*render)(void))
 {
-    NRF_LOG_INFO("Uncalibrated time:\t%s\r\n", nrf_cal_get_time_string(false));
-    NRF_LOG_INFO("Calibrated time:\t%s\r\n", nrf_cal_get_time_string(true));
+	current_node->prev = prev_node;
+	current_node->next = next_node;
+	current_node->render = render;
 }
 
-
-void calendar_updated()
+void next(struct level **current_node)
 {
-    if(run_time_updates)
-    {
-        print_current_time();
-    }
+	if ((*current_node)->next != 0) {
+		(*current_node) = (*current_node)->next;
+		st7735_fill_screen(ST7735_BLACK);
+		(*current_node)->render();
+	}
+}
+
+void prev(struct level **current_node)
+{
+	if ((*current_node)->prev != 0) {
+		(*current_node) = (*current_node)->prev;
+		st7735_fill_screen(ST7735_BLACK);
+		(*current_node)->render();
+	}
+}
+
+void render_main_screen(void)
+{
+	ST7735_write_string(80-25, 26, "1", Font_11x18, ST7735_WHITE, ST7735_BLACK);
+	ST7735_write_string(80-25, 46, "MAIN", Font_7x10, ST7735_WHITE, ST7735_BLACK);
+}
+
+void render_stopper_screen(void)
+{
+	ST7735_write_string(80-25, 26, "2", Font_11x18, ST7735_WHITE, ST7735_BLACK);
+	ST7735_write_string(80-25, 46, "STOPPER", Font_7x10, ST7735_WHITE, ST7735_BLACK);
+}
+
+void render_timer_screen(void)
+{
+	ST7735_write_string(80-25, 26, "3", Font_11x18, ST7735_WHITE, ST7735_BLACK);
+	ST7735_write_string(80-25, 46, "TIMER", Font_7x10, ST7735_WHITE, ST7735_BLACK);
+}
+
+void render_activity_screen(void)
+{
+	ST7735_write_string(80-25, 26, "4", Font_11x18, ST7735_WHITE, ST7735_BLACK);
+	ST7735_write_string(80-25, 46, "ACTIVITY", Font_7x10, ST7735_WHITE, ST7735_BLACK);
 }
 
 /******************************************************************************/
 
 
-void set_date_and_time(void)
-{
-	struct tm tm = { 0 };
 
-	char time_and_date_str[21] = { 0 };
-	strncpy(time_and_date_str, __DATE__, strlen(__DATE__));
-	time_and_date_str[strlen(__DATE__)] = ' ';
-	strncpy(&time_and_date_str[strlen(__DATE__) + 1], __TIME__, strlen(__TIME__));
-
-	char *s = strptime(time_and_date_str, "%b %d %Y %H:%M:%S", &tm);
-	if (s == NULL) {
-		NRF_LOG_INFO("Cannot parse date.\n");
-	}
-
-    nrf_cal_set_time(tm.tm_year+2000, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-
-}
-/******************************************************************************/
-
-typedef enum {
-	ADPS9960_INVALID, APDS9960_UP, APDS9960_DOWN, APDS9960_LEFT, APDS9960_RIGHT
-} apds9960_gesture_received_t;
-
-uint8_t gest_cnt = 0;
-uint8_t u_count = 0;
-uint8_t d_count = 0;
-uint8_t l_count = 0;
-uint8_t r_count = 0;
-
-
-void gesture_init(void)
-{
-    uint8_t temp = 252;
-
-    //atime
-    i2c_write(APDS9960_ADDR, 0x81, &temp, 1);
-
-    //again
-	i2c_read(APDS9960_ADDR, 0x8F, &temp, 1);
-	temp |= (1 << 0);
-	i2c_write(APDS9960_ADDR, 0x8F, &temp, 1);
-
-	//gconf4
-	i2c_read(APDS9960_ADDR, 0xAB, &temp, 1);
-	temp &= ~(1 << 0);
-	i2c_write(APDS9960_ADDR, 0xAB, &temp, 1);
-
-	//enable
-	i2c_read(APDS9960_ADDR, 0x80, &temp, 1);
-	temp &= ~(1 << 6);
-	temp &= ~(1 << 2);
-	temp &= ~(1 << 1);
-	i2c_write(APDS9960_ADDR, 0x80, &temp, 1);
-
-	//enable
-	i2c_read(APDS9960_ADDR, 0x80, &temp, 1);
-	temp &= ~(1 << 5);
-	temp &= ~(1 << 4);
-	i2c_write(APDS9960_ADDR, 0x80, &temp, 1);
-
-	//aiclear
-	temp = 0;
-	i2c_write(APDS9960_ADDR, 0xE7, &temp, 1);
-
-	//disable-enable
-	i2c_read(APDS9960_ADDR, 0x80, &temp, 1);
-	temp &= ~(1 << 0);
-	i2c_write(APDS9960_ADDR, 0x80, &temp, 1);
-	nrf_delay_ms(10);
-	temp |= (1 << 0);
-	i2c_write(APDS9960_ADDR, 0x80, &temp, 1);
-    nrf_delay_ms(10);
-
-	//gconf3 gdims
-	temp = 0;
-	//i2c_write(APDS9960_ADDR, 0xAA, &temp, 1);
-    //csak bal-jobb:
-    //temp = 0b00000010;
-    //csak fel-le
-    temp= 0b00000001;
-    i2c_write(APDS9960_ADDR, 0xAA, &temp, 1);
-
-	//gconf1 gfifith
-	i2c_read(APDS9960_ADDR, 0xA2, &temp, 1);
-	temp |= 0b01000000;
-	i2c_write(APDS9960_ADDR, 0xA2, &temp, 1);
-
-	//gconf2 ggain
-	i2c_read(APDS9960_ADDR, 0xA3, &temp, 1);
-	temp |= 0b01100000;
-	i2c_write(APDS9960_ADDR, 0xA3, &temp, 1);
-
-	//gpenth
-	temp = 50;
-	i2c_write(APDS9960_ADDR, 0xA0, &temp, 1);
-
-	//gplulse
-	temp = 0b11001001;
-	i2c_write(APDS9960_ADDR, 0xA6, &temp, 1);
-
-	//enable
-	i2c_read(APDS9960_ADDR, 0x80, &temp, 1);
-	temp |= (1 << 6);
-	temp |= (1 << 2);
-	i2c_write(APDS9960_ADDR, 0x80, &temp, 1);
-
-	uint8_t id;
-	i2c_read(APDS9960_ADDR, 0x92, &id, 1);
-	NRF_LOG_INFO("gesture initialized, %d", id);
-}
-
-void apds9960_reset_counts(void)
-{
-	gest_cnt = 0;
-	u_count = 0;
-	d_count = 0;
-	l_count = 0;
-	r_count = 0;
-}
-
-void apds9960_gesture_to_uart(apds9960_gesture_received_t gesture_received)
-{
-	switch (gesture_received) {
-	case APDS9960_UP:
-		NRF_LOG_INFO("UP");
-		break;
-	case APDS9960_DOWN:
-		NRF_LOG_INFO("DOWN");
-		break;
-	case APDS9960_LEFT:
-		NRF_LOG_INFO("LEFT");
-		break;
-	case APDS9960_RIGHT:
-		NRF_LOG_INFO("RIGHT");
-		break;
-	default:
-		break;
-	}
-}
-
-apds9960_gesture_received_t apds9960_read_gesture(void)
-{
-	//printf("read gesture function %d\r\n", HAL_GetTick());
-	uint8_t to_read;
-	uint8_t buf[256];
-	unsigned long t = 0;
-	apds9960_gesture_received_t gesture_received;
-
-	while (1) {
-		int up_down_diff = 0;
-		int left_right_diff = 0;
-		gesture_received = 0;
-
-		/* is gesture valid */
-		uint8_t temp;
-		i2c_read(APDS9960_ADDR, 0xAF, &temp, 1);
-
-		if (!(temp & (1 << 0))) {
-			return ADPS9960_INVALID;
-		}
-
-		nrf_delay_ms(30);
-
-		/* getting the nember of samples to be read */
-		temp = 0;
-		i2c_read(APDS9960_ADDR, 0xAE, &temp, 1);
-		//printf("Samples to read: %d\r\n", temp);
-
-		to_read = temp;
-
-		// bytesRead is unused but produces sideffects needed for readGesture to work
-
-		//APDS9960_GFIFO_U
-		i2c_read(APDS9960_ADDR, 0xFC, buf, to_read);
-
-		if (abs((int) buf[0] - (int) buf[1]) > 13)
-			up_down_diff += (int) buf[0] - (int) buf[1];
-
-		if (abs((int) buf[2] - (int) buf[3]) > 13)
-			left_right_diff += (int) buf[2] - (int) buf[3];
-
-		if (up_down_diff != 0) {
-			if (up_down_diff < 0) {
-				if (d_count > 0) {
-					gesture_received = APDS9960_UP;
-				} else
-					u_count++;
-			} else if (up_down_diff > 0) {
-				if (u_count > 0) {
-					gesture_received = APDS9960_DOWN;
-				} else
-					d_count++;
-			}
-		}
-
-		if (left_right_diff != 0) {
-			if (left_right_diff < 0) {
-				if (r_count > 0) {
-					gesture_received = APDS9960_LEFT;
-				} else
-					l_count++;
-			} else if (left_right_diff > 0) {
-				if (l_count > 0) {
-					gesture_received = APDS9960_RIGHT;
-				} else
-					r_count++;
-			}
-		}
-
-		if (up_down_diff != 0 || left_right_diff != 0)
-			//t = HAL_GetTick();
-            t = NRF_RTC0->COUNTER / 8;
-
-		//if (gesture_received || HAL_GetTick() - t > 300) {
-        if (gesture_received || (NRF_RTC0->COUNTER / 8) - t > 300) {
-			apds9960_reset_counts();
-			return gesture_received;
-		}
-	}
-}
-
-
-
-//LECSWERÉLVE A FENTI REGISZTES KÓDOKAT RENDES NEVESÍTETT FÜGGVÉYNKERE:
-
-void new_gesture_init(void)
-{
-    //a kövi rész az adafruittól van:
-    /**************************************************************************/
-    //atime
-    //set_als_adc_integration_time(252);        NINCS MÉG MEGVALÓSÍTVA
-
-    //again
-    /*
-	i2c_read(APDS9960_ADDR, 0x8F, &temp, 1);
-	temp |= (1 << 0);
-	i2c_write(APDS9960_ADDR, 0x8F, &temp, 1);
-    */
-
-	//gconf4
-    /*
-	i2c_read(APDS9960_ADDR, 0xAB, &temp, 1);
-	temp &= ~(1 << 0);
-	i2c_write(APDS9960_ADDR, 0xAB, &temp, 1);
-    */
-
-	set_gesture_enabled(false);
-    set_proximity_enabled(false);
-    set_als_enabled(false);
-
-    set_proximity_interrupt_enabled(false);
-    set_als_interrupt_enabled(false);
-
-    clear_all_non_gesture_interrupt();
-
-	//disable-enable
-    set_power_on(false);
-	nrf_delay_ms(10);
-	set_power_on(true);
-    nrf_delay_ms(10);
-
-	//gconf3 gdims
-    apds9960_gdims_t gdims = APDS9960_BOTH_PAIRS_ACTICE;
-    //apds9960_gdims_t gdims = APDS9960_UP_DOWN_ACTICE;
-    //apds9960_gdims_t gdims = APDS9960_LEFT_RIGHT_ACTICE;
-    set_gesture_dimension_select(gdims);
-
-	//gconf1 gfifith
-    apds9960_gfifoth_t gfifoth = APDS9960_INTERRUPT_AFTER_4_DATASET_ADDED_TO_FIFO;
-    set_gesture_fifo_threshold(gfifoth);
-
-	//gconf2 ggain
-    apds9960_ggain_t ggain = APDS9960_G_GAIN_4X;
-    set_gesture_gain(ggain);
-
-
-	//gpenth
-    set_gesture_proximity_enter_threshold(50);
-
-	//gplulse
-    apds9960_gplen_t gplen = APDS9960_G_PULSE_LENGTH_32_US;
-    apds9960_set_gesture_pulse_length(gplen);
-
-    //ez valójában 10-et jelent! nem kéne átírni a függvéynt hogy ő adjon hozzá?
-    set_gesture_pulse_count(9);
-    
-    //eddig tart az adarfruit
-    /**************************************************************************/
-
-    //ez nem tudom mit keres itt, hiszen ez a gplen és a pulsecount
-    //csak itt 16_US ezzel a beállítással:
-    /*
-	temp = 0b11001001;
-	i2c_write(APDS9960_ADDR, 0xA6, &temp, 1);
-    */
-
-	//enable
-    /*
-	i2c_read(APDS9960_ADDR, 0x80, &temp, 1);
-	temp |= (1 << 6);
-	temp |= (1 << 2);
-	i2c_write(APDS9960_ADDR, 0x80, &temp, 1);
-    */
-    // a fenti megfelelője:
-    set_proximity_enabled(true);
-    set_gesture_enabled(true);
-
-    //ez az id vizsgálat lehetne a legelején is, sőt ott célszerűbb volna talán
-    /*
-	uint8_t id;
-	i2c_read(APDS9960_ADDR, 0x92, &id, 1);
-	NRF_LOG_INFO("gesture initialized, %d", id);
-    */
-    uint8_t id = get_device_id();
-    if (id == 0xAB) {
-        NRF_LOG_INFO("Gesture initialized successfully.");
-    } else {
-        NRF_LOG_INFO("Gesture initialization failed.");
-    }
-
-   //MÉG NÉHÁNY INTERRUPTOT ÉS BE LEHETNE ÁLLÍTANI....
-}
-
-
-
-apds9960_gesture_received_t new_apds9960_read_gesture(void)
-{
-    //gesture_fifo_t gesture_fifo_buffer[32];
-
-	uint8_t to_read;
-	uint8_t buf[256];
-	unsigned long t = 0;
-	apds9960_gesture_received_t gesture_received;
-
-	while (1) {
-		int up_down_diff = 0;
-		int left_right_diff = 0;
-		gesture_received = 0;
-
-		/* is gesture valid */
-        //még nincs implementálva...., azt sem találtam ki hogy legyen a státuszlekérdezés
-        /*
-        if (!is_gesture_valid()) {
-            return ADPS9960_INVALID;
-        }
-        */
-		uint8_t temp;
-		i2c_read(APDS9960_ADDR, 0xAF, &temp, 1);
-
-		if (!(temp & (1 << 0))) {
-			return ADPS9960_INVALID;
-		}
-
-		nrf_delay_ms(30);
-
-		/* getting the number of samples to be read */
-        to_read = get_gesture_fifo_level();
-
-		// bytesRead is unused but produces sideffects needed for readGesture to work
-
-		//APDS9960_GFIFO_U
-		i2c_read(APDS9960_ADDR, 0xFC, buf, to_read);
-
-		if (abs((int) buf[0] - (int) buf[1]) > 13)
-			up_down_diff += (int) buf[0] - (int) buf[1];
-
-		if (abs((int) buf[2] - (int) buf[3]) > 13)
-			left_right_diff += (int) buf[2] - (int) buf[3];
-
-		if (up_down_diff != 0) {
-			if (up_down_diff < 0) {
-				if (d_count > 0) {
-					gesture_received = APDS9960_UP;
-				} else
-					u_count++;
-			} else if (up_down_diff > 0) {
-				if (u_count > 0) {
-					gesture_received = APDS9960_DOWN;
-				} else
-					d_count++;
-			}
-		}
-
-		if (left_right_diff != 0) {
-			if (left_right_diff < 0) {
-				if (r_count > 0) {
-					gesture_received = APDS9960_LEFT;
-				} else
-					l_count++;
-			} else if (left_right_diff > 0) {
-				if (l_count > 0) {
-					gesture_received = APDS9960_RIGHT;
-				} else
-					r_count++;
-			}
-		}
-
-		if (up_down_diff != 0 || left_right_diff != 0)
-			//t = HAL_GetTick();
-            t = NRF_RTC0->COUNTER / 8;
-
-		//if (gesture_received || HAL_GetTick() - t > 300) {
-        if (gesture_received || (NRF_RTC0->COUNTER / 8) - t > 300) {
-			apds9960_reset_counts();
-			return gesture_received;
-		}
-	}
-}
-
-
-
-/******************************************************************************/
 /**
  * @brief Function for main application entry.
  */
@@ -617,128 +233,41 @@ int main(void)
                        err_code);
     APP_ERROR_CHECK(err_code);
 
-
-
-    //twi_init();
-    
-
+    /* Display ****************************************************************/
     nrf_delay_ms(20);
     st7735_init();
     nrf_delay_ms(20);
     st7735_fill_screen(ST7735_BLACK);
     
-    //ST7735_BLUE
-    //ST7735_write_string(0, 10, "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", Font_7x10, ST7735_WHITE, ST7735_BLUE);
-    /*
-    ST7735_write_string(80-25, 26, "22:04", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    ST7735_write_string(80-25, 46, "6/26 Fri", Font_7x10, ST7735_WHITE, ST7735_BLACK);
-    */
-   
-    circle_t p_crcl;
-    p_crcl.x = 80;
-    p_crcl.y = 10;
-    p_crcl.r = 5;
-    //fill_circle_draw(&p_crcl, ST7735_MAGENTA);
-    //ST7735_CYAN
-
-    
-    st7735_fill_rectangle(80+45, 10, 4, 8, ST7735_GREEN);
-    st7735_fill_rectangle(85+45, 10, 4, 8, ST7735_GREEN);
-    st7735_fill_rectangle(90+45, 10, 4, 8, ST7735_GREEN);
-    st7735_fill_rectangle(95+45, 10, 4, 8, ST7735_GREEN);
-
-    line_draw(79+45, 9, 99+45, 9, ST7735_COLOR565(128, 128, 128));
-    line_draw(79+45, 18, 99+45, 18, ST7735_COLOR565(128, 128, 128));
-
-    line_draw(79+45, 9, 79+45, 18, ST7735_COLOR565(128, 128, 128));
-    line_draw(99+45, 9, 99+45, 18, ST7735_COLOR565(128, 128, 128));
-
-    st7735_fill_rectangle(99+45, 9+3, 4, 4, ST7735_COLOR565(128, 128, 128));
-
-    ST7735_write_string(125, 25, "78%", Font_7x10, ST7735_COLOR565(0, 128, 0), ST7735_BLACK);
-
-    /*
-    circle_t p_circle;
-    p_circle.x = 20;
-    p_circle.y = 40;
-    p_circle.r = 15;
-    fill_circle_draw(&p_circle, ST7735_COLOR565(0,0,139));
-    
-    //x0, y0, y1, y1
-    line_draw(20, 32, 20, 48, ST7735_WHITE);
-
-
-    line_draw(20, 32, 24, 36, ST7735_WHITE);
-    line_draw(24, 36, 16, 44, ST7735_WHITE);
-
-
-    line_draw(20, 48, 24, 44, ST7735_WHITE);
-    line_draw(24, 44, 16, 36, ST7735_WHITE);
-    */
-
-    
     draw_widget(bluetooth_widget, 10, 40-(14/2)-25);
     draw_widget(battery_widget, 10, 40-(14/2));
     draw_widget(clock_widget, 10, 40-(14/2)+25);
-    
     //draw_widget(steps_widget, 30, 40-(14/2));
-    
     draw_widget(facebook_widget, 30, 40-(14/2));
-    //draw_widget(gmail_widget, 30, 40-(14/2));
+
+	/* Menu *******************************************************************/
+	level main_menu, stopper_menu, timer_menu, *current_menu;
+
+	level activity_menu;
+
+	build_menu(&main_menu, &activity_menu, &stopper_menu, render_main_screen);
+	build_menu(&stopper_menu, &main_menu, &timer_menu, render_stopper_screen);
+	build_menu(&timer_menu, &stopper_menu, &activity_menu, render_timer_screen);
+
+	build_menu(&activity_menu, &timer_menu, &main_menu, render_activity_screen);
+
+	current_menu = &main_menu;
+	current_menu->render();
     
-
     
-    
-    
-    
-
-    //p_circle.r = 20;
-    //draw_circle(p_circle.x, p_circle.y, p_circle.r, ST7735_WHITE);
-
-
-    //st7735_invert_colors(false);
-
-
+    /* Gesture ****************************************************************/
 
     i2c_init();
-    set_power_on(true);
 
-    nrf_delay_ms(15);
-    
-    //is_power_on();
+    apds9960_gesture_received_t gesture_received;
+    gesture_init();
 
-    set_proximity_enabled(true);
-    //is_proximity_enabled();
-
-    //get_device_id();
-    
-    /*
-    set_proximity_interrupt_enabled(true);
-    is_proximity_interrupt_enabled();
-
-
-
-    set_proximity_interrupt_low_threshold(1+4+16+64);
-    get_proximity_interrupt_low_threshold();
-    */
-
-    apds9960_ldrive_t ldrive = APDS9960_GLED_CURRENT_12_5_MA;
-    set_proximity_led_drive_strength(ldrive);
-
-    apds9960_pplen_t pulse_length = APDS9960_PULSE_LENGTH_16_US;
-    set_proximity_pulse_length(pulse_length);
-     get_proximity_pulse_length();
-
-    set_proximity_pulse_count(1+4+16);
-    get_proximity_pulse_count();
-
-    apds9960_pgain_t pgain = APDS9960_P_GAIN_2X;
-    set_proximity_gain(pgain);
-    pgain = get_proximity_gain();
-
-    NRF_LOG_INFO("START");
-
-    /**************************************************************************/
+    /* Calendar ***************************************************************/
     uint32_t year, month, day, hour, minute, second;
 
     NRF_CLOCK->EVENTS_HFCLKSTARTED = 0;
@@ -748,78 +277,46 @@ int main(void)
     nrf_cal_init();
     nrf_cal_set_callback(calendar_updated, 4);
 
-    //nrf_cal_set_time(2020, 8, 9, 12, 35, 0);
     set_date_and_time();
     /**************************************************************************/
 
-    apds9960_gesture_received_t gesture_received;
-    gesture_init();
-    
     int key;
-
-    struct tm *time;
-    char time_buff[50] = "";
-    char date_buff[50] = "";
-    char *week_days[] = {"Mon, Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
-    //time->tm_wday
 
     while (true)
     {
-        /*
-    NRF_LOG_INFO("*******************");
-    set_gesture_offset_up(-127);
-    int8_t valami = get_gesture_offset_up();
-    NRF_LOG_INFO("%d", valami);*/
-
-
-        /*
+        
         gesture_received = apds9960_read_gesture();
         apds9960_gesture_to_uart(gesture_received);
+
+		if (gesture_received == APDS9960_RIGHT) {
+			prev(&current_menu);
+		} else if (gesture_received == APDS9960_LEFT) {
+			next(&current_menu);
+		}
+		nrf_delay_ms(50);
+		
+        
+        
+        /**********************************************************************/
+        /*
+        _time = nrf_cal_get_time();
+        sprintf(time_buff, "%02d:%02d", _time->tm_hour, _time->tm_min);
+        sprintf(date_buff, "%d/%d %s", _time->tm_mon + 1, _time->tm_mday, week_days[_time->tm_wday]);
+        ST7735_write_string(80-25, 26, time_buff, Font_11x18, ST7735_WHITE, ST7735_BLACK);
+        ST7735_write_string(80-25, 46, date_buff, Font_7x10, ST7735_WHITE, ST7735_BLACK);
+        //print_current_time();
+        //nrf_delay_ms(1000);
         */
-
-        print_current_time();
-        nrf_delay_ms(1000);
-
         
-        time = nrf_cal_get_time();
-        sprintf(time_buff, "%02d:%02d", time->tm_hour, time->tm_min);
-        sprintf(date_buff, "%d/%d %s", time->tm_mon + 1, time->tm_mday, week_days[time->tm_wday]);
-
-        ST7735_write_string(80-25, 26, time_buff, Font_11x18, ST7735_WHITE, ST7735_BLACK);
-        ST7735_write_string(80-25, 46, date_buff, Font_7x10, ST7735_WHITE, ST7735_BLACK);
-        
-
-       /*
-        sprintf(time_buff, "%02d:%02d", 8, 30);
-        sprintf(date_buff, "%d/%d %s", 8, 27, "Thu");
-        ST7735_write_string(80-25, 26, time_buff, Font_11x18, ST7735_WHITE, ST7735_BLACK);
-        ST7735_write_string(80-25, 46, date_buff, Font_7x10, ST7735_WHITE, ST7735_BLACK);
-*/
-        
-
-
+        /**********************************************************************/
         key = SEGGER_RTT_GetKey();
         if (key > 0) {
             NRF_LOG_INFO("Key: %c", key);
         }
 
-        uint8_t val = 0b10000001;
-        //LOG_BINARY_DUMP(128-val);
-        //LOG_BINARY_DUMP(128-val);
-        NRF_LOG_INFO("%d", val);
-        NRF_LOG_INFO("** %d", 128-val);
+        /**********************************************************************/
         /*
         printf("\r\nUART example started.\r\n");
-        //read_sensor_id();
-        //LOG_BINARY_DUMP(171);        
-        
-        uint8_t prox = get_proximity_data();
-        NRF_LOG_INFO("Proximity: %d", prox);
-        nrf_delay_ms(1000);
-        print_current_time();
-        */
-
-        /*
         uint8_t cr;
         while (app_uart_get(&cr) != NRF_SUCCESS);
         while (app_uart_put(cr) != NRF_SUCCESS);
@@ -832,8 +329,8 @@ int main(void)
             {
                 // Do nothing.
             }
-        }*/
+        }
+        */
     }
 }
-
 #endif

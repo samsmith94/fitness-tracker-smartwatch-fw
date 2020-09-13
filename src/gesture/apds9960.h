@@ -534,4 +534,28 @@ void clear_all_non_gesture_interrupt(void);
 
 /******************************************************************************/
 
+
+
+
+
+
+typedef enum {
+	ADPS9960_INVALID, APDS9960_UP, APDS9960_DOWN, APDS9960_LEFT, APDS9960_RIGHT
+} apds9960_gesture_received_t;
+
+
+extern uint8_t gest_cnt;
+extern uint8_t u_count;
+extern uint8_t d_count;
+extern uint8_t l_count;
+extern uint8_t r_count;
+
+void gesture_init(void);
+void apds9960_reset_counts(void);
+void apds9960_gesture_to_uart(apds9960_gesture_received_t gesture_received);
+apds9960_gesture_received_t apds9960_read_gesture(void);
+
+
+/******************************************************************************/
+
 #endif

@@ -1085,3 +1085,390 @@ gesture_fifo_t get_gesture_fifo(void)
 }
 
 /******************************************************************************/
+
+uint8_t gest_cnt = 0;
+uint8_t u_count = 0;
+uint8_t d_count = 0;
+uint8_t l_count = 0;
+uint8_t r_count = 0;
+
+
+
+
+void gesture_init(void)
+{
+    uint8_t temp = 252;
+
+    //atime
+    i2c_write(APDS9960_ADDR, 0x81, &temp, 1);
+
+    //again
+	i2c_read(APDS9960_ADDR, 0x8F, &temp, 1);
+	temp |= (1 << 0);
+	i2c_write(APDS9960_ADDR, 0x8F, &temp, 1);
+
+	//gconf4
+	i2c_read(APDS9960_ADDR, 0xAB, &temp, 1);
+	temp &= ~(1 << 0);
+	i2c_write(APDS9960_ADDR, 0xAB, &temp, 1);
+
+	//enable
+	i2c_read(APDS9960_ADDR, 0x80, &temp, 1);
+	temp &= ~(1 << 6);
+	temp &= ~(1 << 2);
+	temp &= ~(1 << 1);
+	i2c_write(APDS9960_ADDR, 0x80, &temp, 1);
+
+	//enable
+	i2c_read(APDS9960_ADDR, 0x80, &temp, 1);
+	temp &= ~(1 << 5);
+	temp &= ~(1 << 4);
+	i2c_write(APDS9960_ADDR, 0x80, &temp, 1);
+
+	//aiclear
+	temp = 0;
+	i2c_write(APDS9960_ADDR, 0xE7, &temp, 1);
+
+	//disable-enable
+	i2c_read(APDS9960_ADDR, 0x80, &temp, 1);
+	temp &= ~(1 << 0);
+	i2c_write(APDS9960_ADDR, 0x80, &temp, 1);
+	nrf_delay_ms(10);
+	temp |= (1 << 0);
+	i2c_write(APDS9960_ADDR, 0x80, &temp, 1);
+    nrf_delay_ms(10);
+
+	//gconf3 gdims
+	temp = 0;
+	//i2c_write(APDS9960_ADDR, 0xAA, &temp, 1);
+    //csak bal-jobb:
+    temp = 0b00000010;
+    //csak fel-le
+    //temp= 0b00000001;
+    i2c_write(APDS9960_ADDR, 0xAA, &temp, 1);
+
+	//gconf1 gfifith
+	i2c_read(APDS9960_ADDR, 0xA2, &temp, 1);
+	temp |= 0b01000000;
+	i2c_write(APDS9960_ADDR, 0xA2, &temp, 1);
+
+	//gconf2 ggain
+	i2c_read(APDS9960_ADDR, 0xA3, &temp, 1);
+	temp |= 0b01100000;
+	i2c_write(APDS9960_ADDR, 0xA3, &temp, 1);
+
+	//gpenth
+	temp = 50;
+	i2c_write(APDS9960_ADDR, 0xA0, &temp, 1);
+
+	//gplulse
+	temp = 0b11001001;
+	i2c_write(APDS9960_ADDR, 0xA6, &temp, 1);
+
+	//enable
+	i2c_read(APDS9960_ADDR, 0x80, &temp, 1);
+	temp |= (1 << 6);
+	temp |= (1 << 2);
+	i2c_write(APDS9960_ADDR, 0x80, &temp, 1);
+
+	uint8_t id;
+	i2c_read(APDS9960_ADDR, 0x92, &id, 1);
+	NRF_LOG_INFO("gesture initialized, %d", id);
+}
+
+void apds9960_reset_counts(void)
+{
+	gest_cnt = 0;
+	u_count = 0;
+	d_count = 0;
+	l_count = 0;
+	r_count = 0;
+}
+
+void apds9960_gesture_to_uart(apds9960_gesture_received_t gesture_received)
+{
+	switch (gesture_received) {
+	case APDS9960_UP:
+		NRF_LOG_INFO("UP");
+		break;
+	case APDS9960_DOWN:
+		NRF_LOG_INFO("DOWN");
+		break;
+	case APDS9960_LEFT:
+		NRF_LOG_INFO("LEFT");
+		break;
+	case APDS9960_RIGHT:
+		NRF_LOG_INFO("RIGHT");
+		break;
+	default:
+		break;
+	}
+}
+
+apds9960_gesture_received_t apds9960_read_gesture(void)
+{
+	//printf("read gesture function %d\r\n", HAL_GetTick());
+	uint8_t to_read;
+	uint8_t buf[256];
+	unsigned long t = 0;
+	apds9960_gesture_received_t gesture_received;
+
+	while (1) {
+		int up_down_diff = 0;
+		int left_right_diff = 0;
+		gesture_received = 0;
+
+		/* is gesture valid */
+		uint8_t temp;
+		i2c_read(APDS9960_ADDR, 0xAF, &temp, 1);
+
+		if (!(temp & (1 << 0))) {
+			return ADPS9960_INVALID;
+		}
+
+		nrf_delay_ms(30);
+
+		/* getting the nember of samples to be read */
+		temp = 0;
+		i2c_read(APDS9960_ADDR, 0xAE, &temp, 1);
+		//printf("Samples to read: %d\r\n", temp);
+
+		to_read = temp;
+
+		// bytesRead is unused but produces sideffects needed for readGesture to work
+
+		//APDS9960_GFIFO_U
+		i2c_read(APDS9960_ADDR, 0xFC, buf, to_read);
+
+		if (abs((int) buf[0] - (int) buf[1]) > 13)
+			up_down_diff += (int) buf[0] - (int) buf[1];
+
+		if (abs((int) buf[2] - (int) buf[3]) > 13)
+			left_right_diff += (int) buf[2] - (int) buf[3];
+
+		if (up_down_diff != 0) {
+			if (up_down_diff < 0) {
+				if (d_count > 0) {
+					gesture_received = APDS9960_UP;
+				} else
+					u_count++;
+			} else if (up_down_diff > 0) {
+				if (u_count > 0) {
+					gesture_received = APDS9960_DOWN;
+				} else
+					d_count++;
+			}
+		}
+
+		if (left_right_diff != 0) {
+			if (left_right_diff < 0) {
+				if (r_count > 0) {
+					gesture_received = APDS9960_LEFT;
+				} else
+					l_count++;
+			} else if (left_right_diff > 0) {
+				if (l_count > 0) {
+					gesture_received = APDS9960_RIGHT;
+				} else
+					r_count++;
+			}
+		}
+
+		if (up_down_diff != 0 || left_right_diff != 0)
+			//t = HAL_GetTick();
+            t = NRF_RTC0->COUNTER / 8;
+
+		//if (gesture_received || HAL_GetTick() - t > 300) {
+        if (gesture_received || (NRF_RTC0->COUNTER / 8) - t > 300) {
+			apds9960_reset_counts();
+			return gesture_received;
+		}
+	}
+}
+
+
+
+
+//LECSWERÉLVE A FENTI REGISZTES KÓDOKAT RENDES NEVESÍTETT FÜGGVÉYNKERE:
+void new_gesture_init(void)
+{
+    //a kövi rész az adafruittól van:
+    /**************************************************************************/
+    //atime
+    //set_als_adc_integration_time(252);        NINCS MÉG MEGVALÓSÍTVA
+
+    //again
+    /*
+	i2c_read(APDS9960_ADDR, 0x8F, &temp, 1);
+	temp |= (1 << 0);
+	i2c_write(APDS9960_ADDR, 0x8F, &temp, 1);
+    */
+
+	//gconf4
+    /*
+	i2c_read(APDS9960_ADDR, 0xAB, &temp, 1);
+	temp &= ~(1 << 0);
+	i2c_write(APDS9960_ADDR, 0xAB, &temp, 1);
+    */
+
+	set_gesture_enabled(false);
+    set_proximity_enabled(false);
+    set_als_enabled(false);
+
+    set_proximity_interrupt_enabled(false);
+    set_als_interrupt_enabled(false);
+
+    clear_all_non_gesture_interrupt();
+
+	//disable-enable
+    set_power_on(false);
+	nrf_delay_ms(10);
+	set_power_on(true);
+    nrf_delay_ms(10);
+
+	//gconf3 gdims
+    apds9960_gdims_t gdims = APDS9960_BOTH_PAIRS_ACTICE;
+    //apds9960_gdims_t gdims = APDS9960_UP_DOWN_ACTICE;
+    //apds9960_gdims_t gdims = APDS9960_LEFT_RIGHT_ACTICE;
+    set_gesture_dimension_select(gdims);
+
+	//gconf1 gfifith
+    apds9960_gfifoth_t gfifoth = APDS9960_INTERRUPT_AFTER_4_DATASET_ADDED_TO_FIFO;
+    set_gesture_fifo_threshold(gfifoth);
+
+	//gconf2 ggain
+    apds9960_ggain_t ggain = APDS9960_G_GAIN_4X;
+    set_gesture_gain(ggain);
+
+
+	//gpenth
+    set_gesture_proximity_enter_threshold(50);
+
+	//gplulse
+    apds9960_gplen_t gplen = APDS9960_G_PULSE_LENGTH_32_US;
+    apds9960_set_gesture_pulse_length(gplen);
+
+    //ez valójában 10-et jelent! nem kéne átírni a függvéynt hogy ő adjon hozzá?
+    set_gesture_pulse_count(9);
+    
+    //eddig tart az adarfruit
+    /**************************************************************************/
+
+    //ez nem tudom mit keres itt, hiszen ez a gplen és a pulsecount
+    //csak itt 16_US ezzel a beállítással:
+    /*
+	temp = 0b11001001;
+	i2c_write(APDS9960_ADDR, 0xA6, &temp, 1);
+    */
+
+	//enable
+    /*
+	i2c_read(APDS9960_ADDR, 0x80, &temp, 1);
+	temp |= (1 << 6);
+	temp |= (1 << 2);
+	i2c_write(APDS9960_ADDR, 0x80, &temp, 1);
+    */
+    // a fenti megfelelője:
+    set_proximity_enabled(true);
+    set_gesture_enabled(true);
+
+    //ez az id vizsgálat lehetne a legelején is, sőt ott célszerűbb volna talán
+    /*
+	uint8_t id;
+	i2c_read(APDS9960_ADDR, 0x92, &id, 1);
+	NRF_LOG_INFO("gesture initialized, %d", id);
+    */
+    uint8_t id = get_device_id();
+    if (id == 0xAB) {
+        NRF_LOG_INFO("Gesture initialized successfully.");
+    } else {
+        NRF_LOG_INFO("Gesture initialization failed.");
+    }
+
+   //MÉG NÉHÁNY INTERRUPTOT ÉS BE LEHETNE ÁLLÍTANI....
+}
+
+apds9960_gesture_received_t new_apds9960_read_gesture(void)
+{
+    //gesture_fifo_t gesture_fifo_buffer[32];
+
+	uint8_t to_read;
+	uint8_t buf[256];
+	unsigned long t = 0;
+	apds9960_gesture_received_t gesture_received;
+
+	while (1) {
+		int up_down_diff = 0;
+		int left_right_diff = 0;
+		gesture_received = 0;
+
+		/* is gesture valid */
+        //még nincs implementálva...., azt sem találtam ki hogy legyen a státuszlekérdezés
+        /*
+        if (!is_gesture_valid()) {
+            return ADPS9960_INVALID;
+        }
+        */
+		uint8_t temp;
+		i2c_read(APDS9960_ADDR, 0xAF, &temp, 1);
+
+		if (!(temp & (1 << 0))) {
+			return ADPS9960_INVALID;
+		}
+
+		nrf_delay_ms(30);
+
+		/* getting the number of samples to be read */
+        to_read = get_gesture_fifo_level();
+
+		// bytesRead is unused but produces sideffects needed for readGesture to work
+
+		//APDS9960_GFIFO_U
+		i2c_read(APDS9960_ADDR, 0xFC, buf, to_read);
+
+		if (abs((int) buf[0] - (int) buf[1]) > 13)
+			up_down_diff += (int) buf[0] - (int) buf[1];
+
+		if (abs((int) buf[2] - (int) buf[3]) > 13)
+			left_right_diff += (int) buf[2] - (int) buf[3];
+
+		if (up_down_diff != 0) {
+			if (up_down_diff < 0) {
+				if (d_count > 0) {
+					gesture_received = APDS9960_UP;
+				} else
+					u_count++;
+			} else if (up_down_diff > 0) {
+				if (u_count > 0) {
+					gesture_received = APDS9960_DOWN;
+				} else
+					d_count++;
+			}
+		}
+
+		if (left_right_diff != 0) {
+			if (left_right_diff < 0) {
+				if (r_count > 0) {
+					gesture_received = APDS9960_LEFT;
+				} else
+					l_count++;
+			} else if (left_right_diff > 0) {
+				if (l_count > 0) {
+					gesture_received = APDS9960_RIGHT;
+				} else
+					r_count++;
+			}
+		}
+
+		if (up_down_diff != 0 || left_right_diff != 0)
+			//t = HAL_GetTick();
+            t = NRF_RTC0->COUNTER / 8;
+
+		//if (gesture_received || HAL_GetTick() - t > 300) {
+        if (gesture_received || (NRF_RTC0->COUNTER / 8) - t > 300) {
+			apds9960_reset_counts();
+			return gesture_received;
+		}
+	}
+}
+/******************************************************************************/

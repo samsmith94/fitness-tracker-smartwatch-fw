@@ -5,7 +5,12 @@ static time_t m_time, m_last_calibrate_time = 0;
 static float m_calibrate_factor = 0.0f;
 static uint32_t m_rtc_increment = 60;
 static void (*cal_event_callback)(void) = 0;
- 
+
+struct tm *_time;
+char time_buff[50] = "";
+char date_buff[50] = "";
+char *week_days[] = {"Mon, Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+
 void nrf_cal_init(void)
 {
     // Select the 32 kHz crystal and start the 32 kHz clock
@@ -97,4 +102,38 @@ void CAL_RTC_IRQHandler(void)
         m_time += m_rtc_increment;
         if(cal_event_callback) cal_event_callback();
     }
+}
+
+static bool run_time_updates = false;
+
+void print_current_time(void)
+{
+    NRF_LOG_INFO("Uncalibrated time:\t%s\r\n", nrf_cal_get_time_string(false));
+    NRF_LOG_INFO("Calibrated time:\t%s\r\n", nrf_cal_get_time_string(true));
+}
+
+void calendar_updated(void)
+{
+    if(run_time_updates)
+    {
+        print_current_time();
+    }
+}
+
+void set_date_and_time(void)
+{
+	struct tm tm = { 0 };
+
+	char time_and_date_str[21] = { 0 };
+	strncpy(time_and_date_str, __DATE__, strlen(__DATE__));
+	time_and_date_str[strlen(__DATE__)] = ' ';
+	strncpy(&time_and_date_str[strlen(__DATE__) + 1], __TIME__, strlen(__TIME__));
+
+	char *s = strptime(time_and_date_str, "%b %d %Y %H:%M:%S", &tm);
+	if (s == NULL) {
+		NRF_LOG_INFO("Cannot parse date.\n");
+	}
+
+    nrf_cal_set_time(tm.tm_year+2000, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+
 }
