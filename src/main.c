@@ -201,18 +201,60 @@ void render_activity_screen(void)
 	ST7735_write_string(80-25, 46, "ACTIVITY", Font_7x10, ST7735_WHITE, ST7735_BLACK);
 }
 
+
+/* Stopper/counter ************************************************************/
+typedef struct {
+	uint8_t min;
+	uint8_t sec;
+	uint8_t tenth_of_sec;
+} stopper_counter_t;
+
+stopper_counter_t stopper;
+stopper_counter_t timer;
+
+
 /* Timer **********************************************************************/
+const nrf_drv_timer_t TIMER_TEST = NRF_DRV_TIMER_INSTANCE(0);
 
-const nrf_drv_timer_t TIMER_TEST = NRF_DRV_TIMER_INSTANCE(1);
 
+tenth_of_seconds = 10*60;	//1 perc
 void timer_event_handler(nrf_timer_event_t event_type, void* p_context)
 {
-	static int i = 0;
-	i++;
+	
+	static uint32_t i;
+    uint32_t led_to_invert = ((i++) % LEDS_NUMBER);
+
     switch (event_type)
     {
         case NRF_TIMER_EVENT_COMPARE0:
-            NRF_LOG_INFO("timer_event_handler called. %d", i);
+            //NRF_LOG_INFO("timer_event_handler called. %d", i);
+			//bsp_board_led_invert(led_to_invert);
+
+
+			//time_counter++;
+
+			
+			tenth_of_seconds--;
+			timer.min = tenth_of_seconds / (60 * 10);
+			timer.sec = (tenth_of_seconds - (timer.min * 60 * 10)) / 10;
+			timer.tenth_of_sec = tenth_of_seconds - (timer.min * 60 * 10) - (timer.sec * 10);
+			NRF_LOG_INFO("Timer: %02d:%02d.%01d\r\n", timer.min, timer.sec, timer.tenth_of_sec);
+			if (tenth_of_seconds == 0) {
+				nrf_drv_timer_disable(&TIMER_TEST);
+			}
+			
+			/*
+			timer.tenth_of_sec++;
+			if (timer.tenth_of_sec == 10) {
+				timer.tenth_of_sec = 0;
+				timer.sec++;
+				if (timer.sec == 59) {
+					timer.sec = 0;
+					timer.min++;
+				}
+			}
+			NRF_LOG_INFO("Stopper: %02d:%02d.%02d\r\n", timer.min, timer.sec, timer.tenth_of_sec);
+			*/
             break;
 
         default:
@@ -220,10 +262,6 @@ void timer_event_handler(nrf_timer_event_t event_type, void* p_context)
             break;
     }
 }
-
-
-/******************************************************************************/
-
 
 
 
@@ -308,11 +346,13 @@ int main(void)
     set_date_and_time();
 
 	/* Timer ******************************************************************/
-	uint32_t time_ms = 500*1000; //Time(in miliseconds) between consecutive compare events.
+	uint32_t time_ms = 100; //Time(in miliseconds) between consecutive compare events.
     uint32_t time_ticks;
+	err_code = NRF_SUCCESS;
 
     //Configure TIMER_LED for generating simple light effect - leds on board will invert his state one after the other.
     nrf_drv_timer_config_t timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
+	timer_cfg.frequency = NRF_TIMER_FREQ_62500Hz;
     err_code = nrf_drv_timer_init(&TIMER_TEST, &timer_cfg, timer_event_handler);
     APP_ERROR_CHECK(err_code);
 
