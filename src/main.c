@@ -110,6 +110,11 @@ int main(void)
 #include "rtc/calendar.h"
 
 
+
+#include "nrf_drv_timer.h"
+
+//#include "nrf_timer.h"
+
 //#define ENABLE_LOOPBACK_TEST  /**< if defined, then this example will be a loopback test, which means that TX should be connected to RX to get data loopback. */
 
 #define MAX_TEST_DATA_BYTES (15U) /**< max number of test bytes to be used for tx and rx. */
@@ -196,7 +201,30 @@ void render_activity_screen(void)
 	ST7735_write_string(80-25, 46, "ACTIVITY", Font_7x10, ST7735_WHITE, ST7735_BLACK);
 }
 
+/* Timer **********************************************************************/
+
+const nrf_drv_timer_t TIMER_TEST = NRF_DRV_TIMER_INSTANCE(1);
+
+void timer_event_handler(nrf_timer_event_t event_type, void* p_context)
+{
+	static int i = 0;
+	i++;
+    switch (event_type)
+    {
+        case NRF_TIMER_EVENT_COMPARE0:
+            NRF_LOG_INFO("timer_event_handler called. %d", i);
+            break;
+
+        default:
+            //Do nothing.
+            break;
+    }
+}
+
+
 /******************************************************************************/
+
+
 
 
 
@@ -278,9 +306,26 @@ int main(void)
     nrf_cal_set_callback(calendar_updated, 4);
 
     set_date_and_time();
-    /**************************************************************************/
 
-    int key;
+	/* Timer ******************************************************************/
+	uint32_t time_ms = 500*1000; //Time(in miliseconds) between consecutive compare events.
+    uint32_t time_ticks;
+
+    //Configure TIMER_LED for generating simple light effect - leds on board will invert his state one after the other.
+    nrf_drv_timer_config_t timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
+    err_code = nrf_drv_timer_init(&TIMER_TEST, &timer_cfg, timer_event_handler);
+    APP_ERROR_CHECK(err_code);
+
+    time_ticks = nrf_drv_timer_ms_to_ticks(&TIMER_TEST, time_ms);
+
+    nrf_drv_timer_extended_compare(&TIMER_TEST, NRF_TIMER_CC_CHANNEL0, time_ticks, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
+
+    nrf_drv_timer_enable(&TIMER_TEST);
+
+	/* RTT key ****************************************************************/
+	int key;
+
+	/**************************************************************************/
 
     while (true)
     {
