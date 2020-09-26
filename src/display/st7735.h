@@ -146,7 +146,6 @@ void fill_circle_draw(circle_t const * p_circle, uint32_t color);
 
 void line_draw(uint16_t x_0, uint16_t y_0, uint16_t x_1, int16_t y_1, uint32_t color);
 
-
 /******************************************************************************/
 
 typedef struct {
@@ -164,7 +163,7 @@ typedef struct {
 
 void draw_widget(widget_t widget, uint8_t start_x, uint8_t start_y);
 
-extern widget_t bluetooth_widget;
+extern widget_t heart_widget;
 extern widget_t battery_widget;
 extern widget_t clock_widget;
 extern widget_t steps_widget;
@@ -175,3 +174,7 @@ extern widget_t facebook_widget;
 
 extern widget_t gmail_widget;
 
+extern widget_t arrow_widget;
+
+
+extern widget_t bluetooth_widget;

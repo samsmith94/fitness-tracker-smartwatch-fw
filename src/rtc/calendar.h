@@ -54,4 +54,7 @@ void calendar_updated(void);
 
 void set_date_and_time(void);
 
+
+void calendar_init(void);
+
 #endif

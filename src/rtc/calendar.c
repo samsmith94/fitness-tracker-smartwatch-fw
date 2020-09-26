@@ -137,3 +137,15 @@ void set_date_and_time(void)
     nrf_cal_set_time(tm.tm_year+2000, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 
 }
+
+void calendar_init(void)
+{
+    NRF_CLOCK->EVENTS_HFCLKSTARTED = 0;
+    NRF_CLOCK->TASKS_HFCLKSTART = 1;
+    while(NRF_CLOCK->EVENTS_HFCLKSTARTED == 0);
+
+    nrf_cal_init();
+    nrf_cal_set_callback(calendar_updated, 4);
+
+    set_date_and_time();
+}

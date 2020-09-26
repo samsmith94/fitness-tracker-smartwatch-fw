@@ -113,6 +113,11 @@ int main(void)
 
 #include "nrf_drv_timer.h"
 
+#include "test_apds9960.h"
+
+
+
+
 //#include "nrf_timer.h"
 
 //#define ENABLE_LOOPBACK_TEST  /**< if defined, then this example will be a loopback test, which means that TX should be connected to RX to get data loopback. */
@@ -177,28 +182,92 @@ void prev(struct level **current_node)
 	}
 }
 
+char battery_buff[5] = "";
+char step_count_buff[6] = "";
+
 void render_main_screen(void)
 {
-	ST7735_write_string(80-25, 26, "1", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-	ST7735_write_string(80-25, 46, "MAIN", Font_7x10, ST7735_WHITE, ST7735_BLACK);
+	//ST7735_write_string(80-25, 26, "1", Font_11x18, ST7735_WHITE, ST7735_BLACK);
+	//ST7735_write_string(80-25, 46, "MAIN", Font_7x10, ST7735_WHITE, ST7735_BLACK);
+
+    
+    draw_widget(bluetooth_widget, 10, 40-(14/2));
+
+
+    _time = nrf_cal_get_time();
+    sprintf(time_buff, "%02d:%02d", _time->tm_hour, _time->tm_min);
+    sprintf(date_buff, "%d/%d %s", _time->tm_mon + 1, _time->tm_mday, week_days[_time->tm_wday]);
+    ST7735_write_string(80-25, 26, time_buff, Font_11x18, ST7735_WHITE, ST7735_BLACK);
+    ST7735_write_string(80-25, 46, date_buff, Font_7x10, ST7735_CYAN, ST7735_BLACK);
+
+    draw_widget(battery_widget, 135, 5);
+    //sprintf(battery_buff, "%d%%", 100);
+    sprintf(battery_buff, "%d", 100);
+    ST7735_write_string(130, 20, battery_buff, Font_7x10, ST7735_COLOR565(128, 128, 128), ST7735_BLACK);
+
+
+    draw_widget(steps_widget, 135, 42);
+    sprintf(step_count_buff, "%d", 5231);
+    ST7735_write_string(130, 63, step_count_buff, Font_7x10, ST7735_COLOR565(128, 128, 128), ST7735_BLACK);
+
 }
+
+char stopper_buff[8] = "";
+char stopper_buff2[8] = "";
 
 void render_stopper_screen(void)
 {
-	ST7735_write_string(80-25, 26, "2", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-	ST7735_write_string(80-25, 46, "STOPPER", Font_7x10, ST7735_WHITE, ST7735_BLACK);
+	//ST7735_write_string(80-25, 26, "2", Font_11x18, ST7735_WHITE, ST7735_BLACK);
+	//ST7735_write_string(80-25, 46, "STOPPER", Font_7x10, ST7735_WHITE, ST7735_BLACK);
+
+    st7735_fill_screen(ST7735_BLACK);
+    draw_widget(clock_widget, 10, 40-(14/2));
+
+    sprintf(stopper_buff, "%02d:%02d.", 0, 0, 0);
+    ST7735_write_string(80-25, 26, stopper_buff, Font_11x18, ST7735_WHITE, ST7735_BLACK);
+
+    sprintf(stopper_buff2, "%01d", 0);
+    ST7735_write_string(80-25+65, 33, stopper_buff2, Font_7x10, ST7735_WHITE, ST7735_BLACK);
+
+    ST7735_write_string(80-25, 46, "Double tap", Font_7x10, ST7735_CYAN, ST7735_BLACK);
+    ST7735_write_string(80-25, 56, "to start", Font_7x10, ST7735_CYAN, ST7735_BLACK);
+
 }
+
+char timer_buff[8] = "";
 
 void render_timer_screen(void)
 {
-	ST7735_write_string(80-25, 26, "3", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-	ST7735_write_string(80-25, 46, "TIMER", Font_7x10, ST7735_WHITE, ST7735_BLACK);
+	//ST7735_write_string(80-25, 26, "3", Font_11x18, ST7735_WHITE, ST7735_BLACK);
+	//ST7735_write_string(80-25, 46, "TIMER", Font_7x10, ST7735_WHITE, ST7735_BLACK);
+
+    st7735_fill_screen(ST7735_BLACK);
+    draw_widget(clock_widget, 10, 40-(14/2));
+
+    sprintf(stopper_buff, "%02d", 10);
+    ST7735_write_string(80-25, 26, stopper_buff, Font_11x18, ST7735_WHITE, ST7735_BLACK);
+
+    sprintf(stopper_buff2, "%01d", 0);
+    ST7735_write_string(80-25+20, 33, " min", Font_7x10, ST7735_WHITE, ST7735_BLACK);
+
+    draw_widget(arrow_widget, 110, 40-(14/2)-8);
+    
+    ST7735_write_string(80-25, 46, "Swipe to set", Font_7x10, ST7735_CYAN, ST7735_BLACK);
+    
 }
 
 void render_activity_screen(void)
 {
-	ST7735_write_string(80-25, 26, "4", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-	ST7735_write_string(80-25, 46, "ACTIVITY", Font_7x10, ST7735_WHITE, ST7735_BLACK);
+	//ST7735_write_string(80-25, 26, "4", Font_11x18, ST7735_WHITE, ST7735_BLACK);
+	//ST7735_write_string(80-25, 46, "ACTIVITY", Font_7x10, ST7735_WHITE, ST7735_BLACK);
+
+    st7735_fill_screen(ST7735_BLACK);
+
+    sprintf(stopper_buff, "%s", "Activity");
+    ST7735_write_string(80-25, 26, stopper_buff, Font_11x18, ST7735_WHITE, ST7735_BLACK);
+
+    ST7735_write_string(80-25, 46, "Double tap", Font_7x10, ST7735_CYAN, ST7735_BLACK);
+    ST7735_write_string(80-25, 56, "to start", Font_7x10, ST7735_CYAN, ST7735_BLACK);
 }
 
 
@@ -305,11 +374,15 @@ int main(void)
     nrf_delay_ms(20);
     st7735_fill_screen(ST7735_BLACK);
     
-    draw_widget(bluetooth_widget, 10, 40-(14/2)-25);
-    draw_widget(battery_widget, 10, 40-(14/2));
-    draw_widget(clock_widget, 10, 40-(14/2)+25);
+    //draw_widget(heart_widget, 10, 40-(14/2)-25);
+    //draw_widget(battery_widget, 140, 5);
+    //draw_widget(clock_widget, 10, 40-(14/2)+25);
     //draw_widget(steps_widget, 30, 40-(14/2));
-    draw_widget(facebook_widget, 30, 40-(14/2));
+    //draw_widget(facebook_widget, 30, 40-(14/2));
+
+    /* Calendar ***************************************************************/
+
+    calendar_init();
 
 	/* Menu *******************************************************************/
 	level main_menu, stopper_menu, timer_menu, *current_menu;
@@ -328,22 +401,14 @@ int main(void)
     
     /* Gesture ****************************************************************/
 
+    
     i2c_init();
-
+    
     apds9960_gesture_received_t gesture_received;
     gesture_init();
-
-    /* Calendar ***************************************************************/
-    uint32_t year, month, day, hour, minute, second;
-
-    NRF_CLOCK->EVENTS_HFCLKSTARTED = 0;
-    NRF_CLOCK->TASKS_HFCLKSTART = 1;
-    while(NRF_CLOCK->EVENTS_HFCLKSTARTED == 0);
-
-    nrf_cal_init();
-    nrf_cal_set_callback(calendar_updated, 4);
-
-    set_date_and_time();
+    //new_gesture_init();
+    gpio_init();
+    
 
 	/* Timer ******************************************************************/
 	uint32_t time_ms = 100; //Time(in miliseconds) between consecutive compare events.
@@ -360,15 +425,42 @@ int main(void)
 
     nrf_drv_timer_extended_compare(&TIMER_TEST, NRF_TIMER_CC_CHANNEL0, time_ticks, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
 
-    nrf_drv_timer_enable(&TIMER_TEST);
+    //nrf_drv_timer_enable(&TIMER_TEST);
 
 	/* RTT key ****************************************************************/
 	int key;
 
-	/**************************************************************************/
+	/* apds9960 test **********************************************************/
+
+    //NRF_LOG_INFO("Hello world!");
+
+    //test_ENABLE();
+    //test_ATIME();
+    //test_AILTL();
+
+    /**************************************************************************/
+    
 
     while (true)
     {
+        /*
+        uint8_t status = get_device_status();
+        if (status & (1 << APDS9960_PVALID)) {
+            
+            //kiolvasni a proximiti adatot...
+            uint8_t proximity = get_proximity_data();
+
+            NRF_LOG_INFO("Proximity: %d", proximity);
+            //aztán handler: proximity_interrupt_event_handler(...);
+            //clear_proximity_interrupt();
+        }
+        */
+
+        /*
+        nrf_delay_ms(100);
+        NRF_LOG_INFO("Proximity: %d", get_proximity_data());
+        */
+
         
         gesture_received = apds9960_read_gesture();
         apds9960_gesture_to_uart(gesture_received);
@@ -394,10 +486,13 @@ int main(void)
         */
         
         /**********************************************************************/
+        
+        /*
         key = SEGGER_RTT_GetKey();
         if (key > 0) {
             NRF_LOG_INFO("Key: %c", key);
         }
+        */
 
         /**********************************************************************/
         /*

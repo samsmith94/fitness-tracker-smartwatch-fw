@@ -1,17 +1,6 @@
 #include "apds9960.h"
 
 
-
-
-//PINT, AINT, GIEN
-
-/*
-PINT után PICLEAR kell
-AINT után CICLEAR
-GINT után semmi
-*/
-
-
 //így legyen? :
 uint8_t get_device_status(void)
 {
@@ -22,6 +11,8 @@ uint8_t get_device_status(void)
     return value;
 }
 
+//ezt nem is érdemes meghívni, hiszen csak GFLVL>GFIFOTH vagy GVALID van, de ekkor a GINT is igaz lesz
+// vagy get_device_status GINT-en belül lenne a get_gesture status
 uint8_t get_gesture_status(void)
 {
     uint8_t value;
@@ -30,69 +21,57 @@ uint8_t get_gesture_status(void)
 
     return value;
 }
-//vagy egyenként lekérni??? pl. PVALID?
 
-void interrupt_handler(void)
-{
-    uint8_t status;
+// a fentieken kívül lehetne olyan ami egyenként lekérdez, ha nem interrupt ábbal ahsználjuk, pl: is_proximity_valid()....
 
-    status = get_device_status();
+#define APDS9960_INT_PIN    NRF_GPIO_PIN_MAP(0, 15)
 
-    if (status & (1 << APDS9960_PINT)) {
-        //PICLEAR vagy AICLEAR
-    }
+//ACTIVE LOW INTERRUPT!!!! apds9960 adatap szerint
 
-    if (status & (1 << APDS9960_AINT)) {
-        //CICLEAR vagy AICLEAR
-    }
-
-    if (status & (1 << APDS9960_GINT)) {
-        //nem kell clear csak ki kell olvasni a fifo-t
-    }
-}
-
-
-
-/*
-CPSAT       - mi legyen a függvény neve?
-PGSAT       - mi legyen a függvény neve?
-is_proximity_valid();
-is_als_valid();
-*/
-
-/*
-GFOV        - is_gesture_fifo_overflow()    - jó név???
-GVALID      - is_gesture_fifo_data_valid()
-*/
-
-
-
-
-
-//#define APDS9960_INT_PIN    NRF_GPIO_PIN_MAP(0, ?)
-//ideiglenesen:
-#define APDS9960_INT_PIN    0
-
+//ez egy közös függvény kéne hogy legyen? ?? mármint hogy ne csak apds9960, hanem bármi más is...
+//mégsem biztos a gpio_init miatt
 void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
     if (pin == APDS9960_INT_PIN) {
         switch(action) {
-        case NRF_GPIOTE_POLARITY_LOTOHI:
-            //
-            break;
         case NRF_GPIOTE_POLARITY_HITOLO:
-            //
+            NRF_LOG_INFO("HIGH TO LOW INTERRUPT");
+
+            int i = 0;
+            while (i < 8) {
+                gesture_fifo_t gesture_fifo;
+                gesture_fifo = get_gesture_fifo();
+                NRF_LOG_INFO("FIFO[%d] Up: %d | Down: %d | Left: %d | Right: %d", gesture_fifo.up, gesture_fifo.down, gesture_fifo.left, gesture_fifo.right, i);
+                i++;
+            }
+            
+            //apds9960_irq_handler();
             break;
-        case NRF_GPIOTE_POLARITY_TOGGLE:
-            //
+        case NRF_GPIOTE_POLARITY_LOTOHI:
+            NRF_LOG_INFO("LOW TO HIGH INTERRUPT");
             break;
         default:
             break;
         }
     }
+    //lehet nem is kell a fenti sok if, hiszen be van állítva, hogy ehhez a lábhoz milyen esemény tartozik
+    // tehát lehet, hogy ami most apds9960_irq_handler()-ben van, az csak simán itt lenen
+    
+    
+    /*
+    [else??] if (pin == LSM6DSOX_INT1_PIN) {
+        switch(action) {
+        case NRF_GPIOTE_POLARITY_LOTOHI:
+            lsm6dsox_irq_handler();
+            break;
+        default:
+            break;
+        }
+    }
+    */
 }
 
-
+//void apds9960_gpio_init(void)???
 void gpio_init(void)
 {
     ret_code_t err_code;
@@ -100,26 +79,28 @@ void gpio_init(void)
     err_code = nrf_drv_gpiote_init();
     APP_ERROR_CHECK(err_code);
 
-    nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_TOGGLE(true);
-    //nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_LOTOHI(true);
-    //nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_HITOLO(true);
+    nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_HITOLO(true);
+    //nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_TOGGLE(true);
 
-    in_config.pull = NRF_GPIO_PIN_PULLUP;
+    
+
+    in_config.pull = NRF_GPIO_PIN_PULLUP;       //ez biztos kell? hiszen van külső pullup resistor!!!
     err_code = nrf_drv_gpiote_in_init(APDS9960_INT_PIN, &in_config, in_pin_handler);
     APP_ERROR_CHECK(err_code);
 
     nrf_drv_gpiote_in_event_enable(APDS9960_INT_PIN, true);
 }
 
-
-
 /******************************************************************************/
-//próba egy másik irq handlerre:
 
 
-typedef void (*als_interrupt_event_handler_t)(uint16_t clear, uint16_t red, uint16_t green, uint16_t blue);
-
+void prox(void)
+{
+    NRF_LOG_INFO("hello");
+}
 als_interrupt_event_handler_t als_interrupt_event_handler;
+proximity_interrupt_event_handler_t proximity_interrupt_event_handler = prox;
+gesture_interrupt_event_handler_t gesture_interrupt_event_handler;
 
 
 // túl sok a paraméter, lehetne struktúrába esetleg...
@@ -136,36 +117,54 @@ bool set_als_interrupt_handle_cb(uint16_t low_threshold, uint16_t high_threshold
     als_interrupt_event_handler = &handler;
 }
 
-void int_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
+void apds9960_irq_handler(void)
 {
-    bool proximity_interrupt_firing = false;
-    bool als_interrupt_firing = false;
-    bool gesture_interrupt_firing = false;
+    uint8_t status;
+    uint8_t gesture_status;
 
-    //itt le kéne kérdezni a státus regisztert
+    status = get_device_status();
 
-    if (als_interrupt_firing && als_interrupt_event_handler) {
+    if ((status & (1 << APDS9960_PINT)) && proximity_interrupt_event_handler) {
         
-        //kiolvasni a crgb-t
-        //get_crgb_dats()
+        //kiolvasni a proximiti adatot...
+        uint8_t proximity = get_proximity_data();
 
-        //aztán meghívni a handlert, átadva a crgb paramétert:
-        //als_interrupt_event_handler(...);
-
+        NRF_LOG_INFO("Proximity: %d", proximity);
+        //aztán handler: proximity_interrupt_event_handler(...);
+        clear_proximity_interrupt();
     }
 
-    //a legvégén törölni kell az interruptokat (clear all...)
+    if ((status & (1 << APDS9960_AINT)) && als_interrupt_event_handler) {
+        
+        //kiolvasni az rgb c adatot
+        //aztán meghívni a handlert, átadva a crgb paramétert: als_interrupt_event_handler(...);
 
+        clear_c_channel_interrupt();
+    }
+
+    if ((status & (1 << APDS9960_GINT)) && gesture_interrupt_event_handler) {
+        //nem kell clear csak ki kell olvasni a fifo-t
+        //kiolvasni a gesture fifo-t, (inkább a gfov ágban..): gesture_interrupt_event_handler(...);
+        
+        
+        
+        gesture_status = get_gesture_status();
+        if (gesture_status & (1 << APDS9960_GFOV)) {
+            //
+        }
+        if (gesture_status & (1 << APDS9960_GVALID)) {
+            //
+        }
+    }
 }
 
 ///és ugyanezt a sémát lehetne alkalmazni a többire, bár nyilván a gesture a legbonyolultabb
 
-
-/******************************************************************************/
 /******************************************************************************/
 /******************************************************************************/
 void set_power_on(bool value)
 {
+    NRF_LOG_INFO("%s(%d):", __FUNCTION__, value);
     uint8_t config = 0;
 
     i2c_read(APDS9960_ADDR, APDS9960_REG_ENABLE, &config, 1);
@@ -181,6 +180,7 @@ void set_power_on(bool value)
 
 bool is_power_on(void)
 {
+    NRF_LOG_INFO("%s:", __FUNCTION__);
 	uint8_t config = 0;
 
 	i2c_read(APDS9960_ADDR, APDS9960_REG_ENABLE, &config, 1);
@@ -194,6 +194,7 @@ bool is_power_on(void)
 
 void set_als_enabled(bool value)
 {
+    NRF_LOG_INFO("%s(%d):", __FUNCTION__, value);
     uint8_t config = 0;
 
     i2c_read(APDS9960_ADDR, APDS9960_REG_ENABLE, &config, 1);
@@ -209,6 +210,7 @@ void set_als_enabled(bool value)
 
 bool is_als_enabled(void)
 {
+    NRF_LOG_INFO("%s:", __FUNCTION__);
 	uint8_t config = 0;
 
 	i2c_read(APDS9960_ADDR, APDS9960_REG_ENABLE, &config, 1);
@@ -222,6 +224,7 @@ bool is_als_enabled(void)
 
 void set_proximity_enabled(bool value)
 {
+    NRF_LOG_INFO("%s(%d):", __FUNCTION__, value);
     uint8_t config = 0;
 
     i2c_read(APDS9960_ADDR, APDS9960_REG_ENABLE, &config, 1);
@@ -237,6 +240,7 @@ void set_proximity_enabled(bool value)
 
 bool is_proximity_enabled(void)
 {
+    NRF_LOG_INFO("%s:", __FUNCTION__);
 	uint8_t config = 0;
 
 	i2c_read(APDS9960_ADDR, APDS9960_REG_ENABLE, &config, 1);
@@ -248,11 +252,39 @@ bool is_proximity_enabled(void)
 	}
 }
 
-//void set_wait_enabled(bool);
-//bool is_wait_enabled(void);
+void set_wait_enabled(bool value)
+{
+    NRF_LOG_INFO("%s(%d):", __FUNCTION__, value);
+    uint8_t config = 0;
+
+    i2c_read(APDS9960_ADDR, APDS9960_REG_ENABLE, &config, 1);
+
+    if (value) {
+        BIT_SET(config, APDS9960_WEN);
+    } else {
+        BIT_CLEAR(config, APDS9960_WEN);
+    }
+
+    i2c_write(APDS9960_ADDR, APDS9960_REG_ENABLE, &config, 1);
+}
+
+bool is_wait_enabled(void)
+{
+    NRF_LOG_INFO("%s:", __FUNCTION__);
+	uint8_t config = 0;
+
+	i2c_read(APDS9960_ADDR, APDS9960_REG_ENABLE, &config, 1);
+
+	if (BIT_CHECK(config, APDS9960_WEN)) {
+		return true;
+	} else {
+		return false;
+	}
+}
 
 void set_als_interrupt_enabled(bool value)
 {
+    NRF_LOG_INFO("%s(%d):", __FUNCTION__, value);
     uint8_t config = 0;
 
     i2c_read(APDS9960_ADDR, APDS9960_REG_ENABLE, &config, 1);
@@ -268,6 +300,7 @@ void set_als_interrupt_enabled(bool value)
 
 bool is_als_interrupt_enabled(void)
 {
+    NRF_LOG_INFO("%s:", __FUNCTION__);
 	uint8_t config = 0;
 
 	i2c_read(APDS9960_ADDR, APDS9960_REG_ENABLE, &config, 1);
@@ -281,6 +314,7 @@ bool is_als_interrupt_enabled(void)
 
 void set_proximity_interrupt_enabled(bool value)
 {
+    NRF_LOG_INFO("%s(%d):", __FUNCTION__, value);
 	uint8_t config = 0;
 
 	i2c_read(APDS9960_ADDR, APDS9960_REG_ENABLE, &config, 1);
@@ -296,6 +330,7 @@ void set_proximity_interrupt_enabled(bool value)
 
 bool is_proximity_interrupt_enabled(void)
 {
+    NRF_LOG_INFO("%s:", __FUNCTION__);
 	uint8_t config = 0;
 
 	i2c_read(APDS9960_ADDR, APDS9960_REG_ENABLE, &config, 1);
@@ -309,6 +344,7 @@ bool is_proximity_interrupt_enabled(void)
 
 void set_gesture_enabled(bool value)
 {
+    NRF_LOG_INFO("%s(%d):", __FUNCTION__, value);
     uint8_t config = 0;
 
     i2c_read(APDS9960_ADDR, APDS9960_REG_ENABLE, &config, 1);
@@ -324,6 +360,7 @@ void set_gesture_enabled(bool value)
 
 bool is_gesture_enabled(void)
 {
+    NRF_LOG_INFO("%s:", __FUNCTION__);
 	uint8_t config = 0;
 
 	i2c_read(APDS9960_ADDR, APDS9960_REG_ENABLE, &config, 1);
@@ -338,11 +375,44 @@ bool is_gesture_enabled(void)
 /******************************************************************************/
 
 /* APDS9960_REG_ATIME */
-//void set_adc_integration_time();	mi legyen a param
+void set_als_adc_integration_time(float time_ms)
+{
+    // convert ms into 2.78ms increments
+
+    time_ms /= 2.78;
+    time_ms = 256 - round(time_ms);
+    if (time_ms > 255) {
+        time_ms = 255;
+    }
+    if (time_ms < 0) {
+        time_ms = 0;
+    }
+
+    uint8_t atime = (uint8_t)time_ms;
+    //ez vajon jó???
+    i2c_write(APDS9960_ADDR, APDS9960_REG_ATIME, &atime, 1);
+}
+
+//értem, hogy float de jobb lenne uint16_t...
+float get_als_adc_integration_time(void)
+{
+    float time_ms;
+
+    uint8_t atime;
+
+    // jó ez a floatba olvasás?
+    i2c_read(APDS9960_ADDR, APDS9960_REG_ATIME, (uint8_t *)&atime, 1);
+
+    // convert to units of 2.78 ms
+    time_ms = 256 - atime;
+    time_ms *= 2.78;
+    return time_ms;
+}
 
 /* APDS9960_REG_WTIME */
-//void set_wait_time();	mi legyen a param
-
+//na itt probléma van, mert amúgy hasonló az atime-hoz, de a wlong módosít
+//void set_wait_time()
+//void get_wait_time()
 
 /******************************************************************************/
 
@@ -367,12 +437,21 @@ uint16_t get_als_interrupt_low_threshold(void)
 
 void set_als_interrupt_high_threshold(uint16_t value)
 {
-	//
+    uint8_t high_threshold[2];
+    high_threshold[0] = value;
+    high_threshold[1] = value << 8;
+    i2c_write(APDS9960_ADDR, APDS9960_REG_AIHTL, &high_threshold[0], 2);
 }
 
 uint16_t get_als_interrupt_high_threshold(void)
 {
-	//
+    uint16_t value;
+    uint8_t high_threshold[2];
+
+    i2c_read(APDS9960_ADDR, APDS9960_REG_AIHTL, &high_threshold[0], 2);
+
+    value = high_threshold[0] | high_threshold[1] << 8;
+    return value;
 }
 
 /******************************************************************************/
@@ -408,7 +487,6 @@ uint8_t get_proximity_interrupt_high_threshold(void)
 }
 
 /******************************************************************************/
-
 
 void set_proximity_interrupt_persistence(apds9960_ppers_t value)
 {
@@ -458,11 +536,35 @@ uint8_t get_als_interrupt_persistence(void)
 
 /******************************************************************************/
 
-//void set_wait_long_enabled(bool);
-//bool is_wait_long_enabled(void);
+void set_wait_long_enabled(bool value)
+{
+    uint8_t config = 0;
+
+    i2c_read(APDS9960_ADDR, APDS9960_REG_CONFIG1, &config, 1);
+
+    if (value) {
+        BIT_SET(config, APDS9960_WLONG);
+    } else {
+        BIT_CLEAR(config, APDS9960_WLONG);
+    }
+
+    i2c_write(APDS9960_ADDR, APDS9960_REG_CONFIG1, &config, 1);
+}
+
+bool is_wait_long_enabled(void)
+{
+	uint8_t config = 0;
+
+	i2c_read(APDS9960_ADDR, APDS9960_REG_CONFIG1, &config, 1);
+
+	if (BIT_CHECK(config, APDS9960_WLONG)) {
+		return true;
+	} else {
+		return false;
+	}
+}
 
 /******************************************************************************/
-
 
 void set_proximity_pulse_length(apds9960_pplen_t value)
 {
@@ -492,7 +594,7 @@ void set_proximity_pulse_count(uint8_t value)
 
     i2c_read(APDS9960_ADDR, APDS9960_REG_PPULSE, &config, 1);
 
-    MULTIBIT_SET(config, APDS9960_PPULSE_MASK, value);
+    MULTIBIT_SET(config, APDS9960_PPULSE_MASK, (value-1));
 
     i2c_write(APDS9960_ADDR, APDS9960_REG_PPULSE, &config, 1);
 }
@@ -505,11 +607,10 @@ uint8_t get_proximity_pulse_count(void)
 
     MULTIBIT_GET(config, APDS9960_PPULSE_MASK);
 
-    return config;
+    return (config+1);
 }
 
 /******************************************************************************/
-
 
 void set_proximity_led_drive_strength(apds9960_ldrive_t value)
 {
@@ -532,10 +633,6 @@ apds9960_ldrive_t get_proximity_led_drive_strength(void)
 
     return config;
 }
-
-
-
-
 
 
 void set_proximity_gain(apds9960_pgain_t value)
@@ -561,9 +658,6 @@ apds9960_pgain_t get_proximity_gain(void)
 }
 
 
-
-
-
 void set_als_and_color_gain(apds9960_again_t value)
 {
     uint8_t config = 0;
@@ -585,9 +679,6 @@ apds9960_again_t get_als_and_color_gain(void)
 
     return config;
 }
-
-
-
 
 /******************************************************************************/
 
@@ -620,7 +711,6 @@ bool is_proximity_saturation_interrupt_enabled(void)
 }
 
 
-
 void set_c_photodiode_saturation_interrupt_enabled(bool value)
 {
     uint8_t config = 0;
@@ -650,9 +740,27 @@ bool is_c_photodiode_saturation_interrupt_enabled(void)
 }
 
 
-//void set_led_boost(apds9960_ledboost_t);
-//apds9960_ledboost_t get_led_boost(void);
+void set_led_boost(apds9960_ledboost_t value)
+{
+    uint8_t config = 0;
 
+    i2c_read(APDS9960_ADDR, APDS9960_REG_CONFIG2, &config, 1);
+
+    MULTIBIT_SET(config, APDS9960_LEDBOOST_MASK, value);
+
+    i2c_write(APDS9960_ADDR, APDS9960_REG_CONFIG2, &config, 1);
+}
+
+apds9960_ledboost_t get_led_boost(void)
+{
+    uint8_t config = 0;
+
+    i2c_read(APDS9960_ADDR, APDS9960_REG_CONFIG2, &config, 1);
+
+    MULTIBIT_GET(config, APDS9960_LEDBOOST_MASK);
+
+    return config;
+}
 
 /******************************************************************************/
 
@@ -666,7 +774,7 @@ uint8_t get_device_id(void)
 }
 
 /******************************************************************************/
-//status
+//status.......
 
 /******************************************************************************/
 //cdata....
@@ -683,27 +791,60 @@ uint8_t get_proximity_data(void)
 
 /******************************************************************************/
 
-//set_proximity_offset_up_and_right();		MI LEGYEN A PARAMÉTER?
-//get_proximity_offset_up_and_right();		MI LEGYEN A PARAMÉTER?
+void set_proximity_offset_up_and_right(int8_t value)
+{
+    uint8_t config = 0;
 
-//set_proximity_offset_down_and_left();		MI LEGYEN A PARAMÉTER?
-//get_proximity_offset_down_and_left();		MI LEGYEN A PARAMÉTER?
+    if (value >= 0) {
+        config = value;
+    } else {
+        config = 128-value;
+    }
 
+    i2c_write(APDS9960_ADDR, APDS9960_REG_POFFSET_UR, &config, 1);
+}
 
+int8_t get_proximity_offset_up_and_right(void)
+{
+    uint8_t config = 0;
+
+    i2c_read(APDS9960_ADDR, APDS9960_REG_POFFSET_UR, &config, 1);
+
+    if (config >= 129) {
+        return (128-config);
+    } else {
+        return config;
+    }
+}
+
+void set_proximity_offset_down_and_left(int8_t value)
+{
+    uint8_t config = 0;
+
+    if (value >= 0) {
+        config = value;
+    } else {
+        config = 128-value;
+    }
+
+    i2c_write(APDS9960_ADDR, APDS9960_REG_POFFSET_DL, &config, 1);
+}
+int8_t get_proximity_offset_down_and_left(void)
+{
+    uint8_t config = 0;
+
+    i2c_read(APDS9960_ADDR, APDS9960_REG_POFFSET_DL, &config, 1);
+
+    if (config >= 129) {
+        return (128-config);
+    } else {
+        return config;
+    }
+}
 
 /******************************************************************************/
 //TODO: PCMP, SAI plussz ez:
 //set_proximity_mask_enable();
-
-
-
-
-
-
-
-
-
-
 
 
 /******************************************************************************/
@@ -878,7 +1019,6 @@ apds9960_gwtime_t get_gesture_wait_time(void)
 
 /******************************************************************************/
 
-
 // le vannak tesztelve, jók ezek az offsetes int8-as get és set függvények
 void set_gesture_offset_up(int8_t value)
 {
@@ -905,20 +1045,86 @@ int8_t get_gesture_offset_up(void)
         return config;
     }
 }
-/*
-void set_gesture_offset_down(int8_t value);
-int8_t get_gesture_offset_down(void);
 
-void set_gesture_offset_left(int8_t value);
-int8_t get_gesture_offset_left(void);
+void set_gesture_offset_down(int8_t value)
+{
+    uint8_t config = 0;
 
-void set_gesture_offset_right(int8_t value);
-int8_t get_gesture_offset_right(void);
-*/
+    if (value >= 0) {
+        config = value;
+    } else {
+        config = 128-value;
+    }
 
+    i2c_write(APDS9960_ADDR, APDS9960_REG_GOFFSET_D, &config, 1);
+}
+
+int8_t get_gesture_offset_down(void)
+{
+    uint8_t config = 0;
+
+    i2c_read(APDS9960_ADDR, APDS9960_REG_GOFFSET_D, &config, 1);
+
+    if (config >= 129) {
+        return (128-config);
+    } else {
+        return config;
+    }
+}
+
+void set_gesture_offset_left(int8_t value)
+{
+    uint8_t config = 0;
+
+    if (value >= 0) {
+        config = value;
+    } else {
+        config = 128-value;
+    }
+
+    i2c_write(APDS9960_ADDR, APDS9960_REG_GOFFSET_L, &config, 1);
+}
+
+int8_t get_gesture_offset_left(void)
+{
+    uint8_t config = 0;
+
+    i2c_read(APDS9960_ADDR, APDS9960_REG_GOFFSET_L, &config, 1);
+
+    if (config >= 129) {
+        return (128-config);
+    } else {
+        return config;
+    }
+}
+
+void set_gesture_offset_right(int8_t value)
+{
+    uint8_t config = 0;
+
+    if (value >= 0) {
+        config = value;
+    } else {
+        config = 128-value;
+    }
+
+    i2c_write(APDS9960_ADDR, APDS9960_REG_GOFFSET_R, &config, 1);
+}
+
+int8_t get_gesture_offset_right(void)
+{
+    uint8_t config = 0;
+
+    i2c_read(APDS9960_ADDR, APDS9960_REG_GOFFSET_R, &config, 1);
+
+    if (config >= 129) {
+        return (128-config);
+    } else {
+        return config;
+    }
+}
 
 /******************************************************************************/
-
 
 void apds9960_set_gesture_pulse_length(apds9960_gplen_t value)
 {
@@ -948,7 +1154,7 @@ void set_gesture_pulse_count(uint8_t value)
 
     i2c_read(APDS9960_ADDR, APDS9960_REG_GPULSE, &config, 1);
 
-    MULTIBIT_SET(config, APDS9960_GPULSE_MASK, value);
+    MULTIBIT_SET(config, APDS9960_GPULSE_MASK, (value-1));
 
     i2c_write(APDS9960_ADDR, APDS9960_REG_GPULSE, &config, 1);
 }
@@ -961,11 +1167,10 @@ uint8_t get_gesture_pulse_count(void)
 
     MULTIBIT_GET(config, APDS9960_GPULSE_MASK);
 
-    return config;
+    return (config+1);
 }
 
 /******************************************************************************/
-
 
 void set_gesture_dimension_select(apds9960_gdims_t value)
 {
@@ -989,10 +1194,7 @@ apds9960_gdims_t get_gesture_dimension_select(void)
     return config;
 }
 
-
-
 /******************************************************************************/
-
 
 void set_gesture_interrupt_enabled(bool value)
 {
@@ -1022,13 +1224,9 @@ bool is_gesture_interrupt_enabled(void)
 	}
 }
 
-
 /******************************************************************************/
-
-
 //gmode!!!
 /******************************************************************************/
-
 
 uint8_t get_gesture_fifo_level(void)
 {
@@ -1040,32 +1238,30 @@ uint8_t get_gesture_fifo_level(void)
 }
 
 /******************************************************************************/
-
 //GSTATUS
-
-
 /******************************************************************************/
-
-
 
 void force_an_interrupt(void)
 {
     i2c_send(APDS9960_ADDR, APDS9960_REG_IFORCE, 0);
 }
 
-//void clear_proximity_interrupt(void);
+void clear_proximity_interrupt(void)
+{
+    i2c_send(APDS9960_ADDR, APDS9960_REG_PICLEAR, 0);
+}
 
-//void clear_c_channel_interrupt(void);
-
+void clear_c_channel_interrupt(void)
+{
+    i2c_send(APDS9960_ADDR, APDS9960_REG_CICLEAR, 0);
+}
 
 void clear_all_non_gesture_interrupt(void)
 {
     i2c_send(APDS9960_ADDR, APDS9960_REG_AICLEAR, 0);
 }
 
-
 /******************************************************************************/
-
 
 //UDLR FIFO:
 
@@ -1091,9 +1287,6 @@ uint8_t u_count = 0;
 uint8_t d_count = 0;
 uint8_t l_count = 0;
 uint8_t r_count = 0;
-
-
-
 
 void gesture_init(void)
 {
@@ -1286,30 +1479,20 @@ apds9960_gesture_received_t apds9960_read_gesture(void)
 	}
 }
 
-
-
-
 //LECSWERÉLVE A FENTI REGISZTES KÓDOKAT RENDES NEVESÍTETT FÜGGVÉYNKERE:
 void new_gesture_init(void)
 {
     //a kövi rész az adafruittól van:
     /**************************************************************************/
-    //atime
-    //set_als_adc_integration_time(252);        NINCS MÉG MEGVALÓSÍTVA
+    set_als_adc_integration_time(10);
 
-    //again
-    /*
-	i2c_read(APDS9960_ADDR, 0x8F, &temp, 1);
-	temp |= (1 << 0);
-	i2c_write(APDS9960_ADDR, 0x8F, &temp, 1);
-    */
+	set_als_and_color_gain(APDS9960_A_GAIN_4X);
 
-	//gconf4
-    /*
+	//gconf4: EZ BIZONY A GMODE, utánaolvasni:
+    uint8_t temp;
 	i2c_read(APDS9960_ADDR, 0xAB, &temp, 1);
 	temp &= ~(1 << 0);
 	i2c_write(APDS9960_ADDR, 0xAB, &temp, 1);
-    */
 
 	set_gesture_enabled(false);
     set_proximity_enabled(false);
@@ -1340,7 +1523,6 @@ void new_gesture_init(void)
     apds9960_ggain_t ggain = APDS9960_G_GAIN_4X;
     set_gesture_gain(ggain);
 
-
 	//gpenth
     set_gesture_proximity_enter_threshold(50);
 
@@ -1349,7 +1531,7 @@ void new_gesture_init(void)
     apds9960_set_gesture_pulse_length(gplen);
 
     //ez valójában 10-et jelent! nem kéne átírni a függvéynt hogy ő adjon hozzá?
-    set_gesture_pulse_count(9);
+    set_gesture_pulse_count(10);
     
     //eddig tart az adarfruit
     /**************************************************************************/
@@ -1385,6 +1567,8 @@ void new_gesture_init(void)
         NRF_LOG_INFO("Gesture initialization failed.");
     }
 
+    set_gesture_fifo_threshold(APDS9960_INTERRUPT_AFTER_1_DATASET_ADDED_TO_FIFO);
+    set_gesture_interrupt_enabled(true);
    //MÉG NÉHÁNY INTERRUPTOT ÉS BE LEHETNE ÁLLÍTANI....
 }
 
@@ -1472,3 +1656,22 @@ apds9960_gesture_received_t new_apds9960_read_gesture(void)
 	}
 }
 /******************************************************************************/
+
+
+void proximity_init(void)
+{
+    /*
+    gpio_init();
+
+    set_power_on(false);
+    
+
+    set_proximity_interrupt_low_threshold(0);
+    set_proximity_interrupt_high_threshold(175);
+    set_proximity_interrupt_persistence(APDS9960_4_CONSECUTIVE_PROX_VALUE_OUT_OF_RANGE);
+
+    set_proximity_interrupt_enabled(true);
+
+    set_proximity_enabled(true);
+    */
+}

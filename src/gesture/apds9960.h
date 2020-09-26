@@ -8,6 +8,8 @@
 
 #include "../driver/i2c.h"
 
+#include <math.h>
+
 /******************************************************************************/
 #define BIT_SET(reg,pos) ((reg)|=(1<<pos))
 #define BIT_CLEAR(reg,pos) ((reg)&=~(1<<(pos)))
@@ -323,8 +325,8 @@ bool is_als_enabled(void);
 void set_proximity_enabled(bool);
 bool is_proximity_enabled(void);
 
-//void set_wait_enabled(bool);
-//bool is_wait_enabled(void);
+void set_wait_enabled(bool);
+bool is_wait_enabled(void);
 
 void set_als_interrupt_enabled(bool);
 bool is_als_interrupt_enabled(void);
@@ -335,14 +337,13 @@ bool is_proximity_interrupt_enabled(void);
 void set_gesture_enabled(bool);
 bool is_gesture_enabled(void);
 
-
-
-
 /* APDS9960_REG_ATIME */
-//void set_adc_integration_time();	mi legyen a param
+void set_als_adc_integration_time(float time_ms);
+float get_als_adc_integration_time(void);
 
 /* APDS9960_REG_WTIME */
 //void set_wait_time();	mi legyen a param
+//void get_wait_time();	mi legyen a param
 
 /* APDS9960_REG_AILTL & APDS9960_REG_AILTH */
 void set_als_interrupt_low_threshold(uint16_t);
@@ -351,8 +352,6 @@ uint16_t get_als_interrupt_low_threshold(void);
 /* APDS9960_REG_AIHTL & APDS9960_REG_AIHTH */
 void set_als_interrupt_high_threshold(uint16_t);
 uint16_t get_als_interrupt_high_threshold(void);
-
-
 
 /* APDS9960_REG_PILT */
 void set_proximity_interrupt_low_threshold(uint8_t);
@@ -413,21 +412,16 @@ uint8_t get_device_id(void);
 uint8_t get_proximity_data(void);
 
 /* APDS9960_REG_POFFSET_UR */
-//set_proximity_offset_up_and_right();		MI LEGYEN A PARAMÉTER?
-//get_proximity_offset_up_and_right();		MI LEGYEN A PARAMÉTER?
+void set_proximity_offset_up_and_right(int8_t);
+int8_t get_proximity_offset_up_and_right(void);
 
 /* APDS9960_REG_POFFSET_DL */
-//set_proximity_offset_down_and_left();		MI LEGYEN A PARAMÉTER?
-//get_proximity_offset_down_and_left();		MI LEGYEN A PARAMÉTER?
+void set_proximity_offset_down_and_left(int8_t);
+int8_t get_proximity_offset_down_and_left(void);
 
 /* APDS9960_REG_CONFIG3 */
 //TODO: PCMP, SAI plussz ez:
 //set_proximity_mask_enable();
-
-
-
-
-
 
 /* APDS9960_REG_GPENTH */
 void set_gesture_proximity_enter_threshold(uint8_t);
@@ -436,8 +430,6 @@ uint8_t get_gesture_proximity_enter_threshold(void);
 /* APDS9960_REG_GEXTH */
 void set_gesture_proximity_exit_threshold(uint8_t);
 uint8_t get_gesture_proximity_exit_threshold(void);
-
-
 
 
 /* APDS9960_REG_GCONFIG1 */
@@ -450,9 +442,6 @@ apds9960_gexmsk_t get_gesture_exit_mask(void);
 void set_gesture_exit_persistence(apds9960_gexpers_t);
 apds9960_gexpers_t get_gesture_exit_persistence(void);
 
-
-
-
 /* APDS9960_REG_GCONFIG2 */
 void set_gesture_gain(apds9960_ggain_t);
 apds9960_ggain_t get_gesture_gain(void);
@@ -462,10 +451,6 @@ apds9960_gldrive_t get_gesture_led_drive_strength(void);
 
 void set_gesture_wait_time(apds9960_gwtime_t);
 apds9960_gwtime_t get_gesture_wait_time(void);
-
-
-
-
 
 /* APDS9960_REG_GOFFSET_U */
 void set_gesture_offset_up(int8_t);
@@ -482,9 +467,6 @@ int8_t get_gesture_offset_left(void);
 /* APDS9960_REG_GOFFSET_R */
 void set_gesture_offset_right(int8_t);
 int8_t get_gesture_offset_right(void);
-
-
-
 
 /* APDS9960_REG_GPULSE */
 void apds9960_set_gesture_pulse_length(apds9960_gplen_t);
@@ -521,16 +503,12 @@ void clear_c_channel_interrupt(void);
 /* APDS9960_REG_AICLEAR */
 void clear_all_non_gesture_interrupt(void);
 
-
-
 //TODO:
 /* APDS9960_REG_GFIFO_U */
 /* APDS9960_REG_GFIFO_D */
 /* APDS9960_REG_GFIFO_L */
 /* APDS9960_REG_GFIFO_R */
-//gesture_fifo_t get_gesture_fifo(void);
-
-
+gesture_fifo_t get_gesture_fifo(void);
 
 /******************************************************************************/
 
@@ -556,6 +534,25 @@ void apds9960_gesture_to_uart(apds9960_gesture_received_t gesture_received);
 apds9960_gesture_received_t apds9960_read_gesture(void);
 
 
+void new_gesture_init(void);
 /******************************************************************************/
+
+
+
+typedef void (*als_interrupt_event_handler_t)(uint16_t clear, uint16_t red, uint16_t green, uint16_t blue);
+typedef void (*proximity_interrupt_event_handler_t)();      //ez NEM VÉGLEGES!! PARAMÉTEREK!!!
+typedef void (*gesture_interrupt_event_handler_t)();        //EZ SEM VÉGLEGES!
+
+uint8_t get_device_status(void);
+uint8_t get_gesture_status(void);
+void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action);
+void gpio_init(void);
+
+bool set_als_interrupt_handle_cb(uint16_t low_threshold, uint16_t high_threshold, als_interrupt_event_handler_t handler);
+void apds9960_irq_handler(void);
+
+
+void proximity_init(void);
+
 
 #endif

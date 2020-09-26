@@ -2,7 +2,7 @@
 
 static const nrf_drv_twi_t m_twi = NRF_DRV_TWI_INSTANCE(TWI_INSTANCE_ID);
 
-// #define DEBUG_I2C
+//#define DEBUG_I2C
 
 static uint8_t i2c_write_buf[2];
 
@@ -45,7 +45,7 @@ void i2c_read(uint8_t slave_addr, uint8_t reg_addr, uint8_t *buff, uint16_t size
 #ifdef DEBUG_I2C
     char bin[18];
     sprintf(bin, "[%c|%c|%c|%c|%c|%c|%c|%c]", (buff[0] & 0x80 ? '1' : '0'), (buff[0] & 0x40 ? '1' : '0'), (buff[0] & 0x20 ? '1' : '0'), (buff[0] & 0x10 ? '1' : '0'), (buff[0] & 0x08 ? '1' : '0'), (buff[0] & 0x04 ? '1' : '0'), (buff[0] & 0x02 ? '1' : '0'), (buff[0] & 0x01 ? '1' : '0'));
-    NRF_LOG_INFO("I2C READ(0x%02X): %s", reg_addr, bin);
+    NRF_LOG_INFO("I2C  READ(0x%02X): %s", reg_addr, bin);
     //NRF_LOG_INFO("****************************************");
 #endif
 }

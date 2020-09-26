@@ -106,6 +106,7 @@ SRC_FILES += \
 	$(SDK_ROOT)/components/softdevice/common/nrf_sdh_ble.c \
 	$(SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
 	$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_timer.c \
+	$(PROJ_DIR)/gesture/test_apds9960.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \
