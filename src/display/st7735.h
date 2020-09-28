@@ -148,6 +148,11 @@ void line_draw(uint16_t x_0, uint16_t y_0, uint16_t x_1, int16_t y_1, uint32_t c
 
 /******************************************************************************/
 
+
+    
+void st7735_sleep_in(void);
+void st7735_sleep_out(void);
+
 typedef struct {
     uint16_t x;
     uint16_t y;

@@ -286,23 +286,42 @@ stopper_counter_t timer;
 const nrf_drv_timer_t TIMER_TEST = NRF_DRV_TIMER_INSTANCE(0);
 
 
-tenth_of_seconds = 10*60;	//1 perc
+
+
+
+uint32_t expiry_time = 50;  //5 sec
+bool timer_expired = false;
+/*
+5000 ms = 5 sec
+5000/100 = 50
+*/
+
+uint32_t timer_event_handler_cnt = 0;
+
+int tenth_of_seconds = 10*60;	//1 perc
 void timer_event_handler(nrf_timer_event_t event_type, void* p_context)
 {
 	
+    /*
 	static uint32_t i;
     uint32_t led_to_invert = ((i++) % LEDS_NUMBER);
+    */
+
+   timer_event_handler_cnt++;
+
 
     switch (event_type)
     {
         case NRF_TIMER_EVENT_COMPARE0:
             //NRF_LOG_INFO("timer_event_handler called. %d", i);
+            NRF_LOG_INFO("timer_event_handler called. %d", timer_event_handler_cnt);
+            
 			//bsp_board_led_invert(led_to_invert);
 
 
 			//time_counter++;
 
-			
+			/*
 			tenth_of_seconds--;
 			timer.min = tenth_of_seconds / (60 * 10);
 			timer.sec = (tenth_of_seconds - (timer.min * 60 * 10)) / 10;
@@ -311,6 +330,7 @@ void timer_event_handler(nrf_timer_event_t event_type, void* p_context)
 			if (tenth_of_seconds == 0) {
 				nrf_drv_timer_disable(&TIMER_TEST);
 			}
+            */
 			
 			/*
 			timer.tenth_of_sec++;
@@ -330,7 +350,45 @@ void timer_event_handler(nrf_timer_event_t event_type, void* p_context)
             //Do nothing.
             break;
     }
+
+        if (timer_event_handler_cnt == expiry_time) {
+        timer_expired = true;
+        nrf_drv_timer_disable(&TIMER_TEST);
+        NRF_LOG_INFO("Timer expired.");
+        st7735_sleep_in();
+        
+        //i = 0;
+
+        timer_event_handler_cnt = 0;
+    }
+
 }
+
+
+void start_keepalive_timer(nrfx_timer_event_handler_t timer_event_cb)
+{
+    nrf_drv_timer_disable(&TIMER_TEST);
+    nrf_drv_timer_uninit(&TIMER_TEST);
+    uint32_t err_code;
+    
+	/* Timer ******************************************************************/
+	uint32_t time_ms = 100; //Time(in miliseconds) between consecutive compare events.
+    uint32_t time_ticks;
+	err_code = NRF_SUCCESS;
+
+    //Configure TIMER_LED for generating simple light effect - leds on board will invert his state one after the other.
+    nrf_drv_timer_config_t timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
+	timer_cfg.frequency = NRF_TIMER_FREQ_62500Hz;
+    err_code = nrf_drv_timer_init(&TIMER_TEST, &timer_cfg, timer_event_cb);
+    APP_ERROR_CHECK(err_code);
+
+    time_ticks = nrf_drv_timer_ms_to_ticks(&TIMER_TEST, time_ms);
+
+    nrf_drv_timer_extended_compare(&TIMER_TEST, NRF_TIMER_CC_CHANNEL0, time_ticks, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
+
+    nrf_drv_timer_enable(&TIMER_TEST);
+}
+
 
 
 
@@ -411,7 +469,8 @@ int main(void)
     
 
 	/* Timer ******************************************************************/
-	uint32_t time_ms = 100; //Time(in miliseconds) between consecutive compare events.
+	/*
+    uint32_t time_ms = 100; //Time(in miliseconds) between consecutive compare events.
     uint32_t time_ticks;
 	err_code = NRF_SUCCESS;
 
@@ -425,7 +484,11 @@ int main(void)
 
     nrf_drv_timer_extended_compare(&TIMER_TEST, NRF_TIMER_CC_CHANNEL0, time_ticks, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
 
-    //nrf_drv_timer_enable(&TIMER_TEST);
+    nrf_drv_timer_enable(&TIMER_TEST);
+    */
+    
+    
+    
 
 	/* RTT key ****************************************************************/
 	int key;
@@ -439,10 +502,17 @@ int main(void)
     //test_AILTL();
 
     /**************************************************************************/
-    
 
     while (true)
     {
+        /*
+        st7735_sleep_in();
+        nrf_delay_ms(1000);
+        st7735_sleep_out();
+        nrf_delay_ms(1000);
+        */
+
+
         /*
         uint8_t status = get_device_status();
         if (status & (1 << APDS9960_PVALID)) {
@@ -462,13 +532,23 @@ int main(void)
         */
 
         
+        
         gesture_received = apds9960_read_gesture();
         apds9960_gesture_to_uart(gesture_received);
 
 		if (gesture_received == APDS9960_RIGHT) {
 			prev(&current_menu);
+            st7735_sleep_out();
+            timer_event_handler_cnt = 0;
+            start_keepalive_timer(timer_event_handler);
+            
+
 		} else if (gesture_received == APDS9960_LEFT) {
 			next(&current_menu);
+            st7735_sleep_out();
+            timer_event_handler_cnt = 0;
+            start_keepalive_timer(timer_event_handler);
+
 		}
 		nrf_delay_ms(50);
 		
@@ -513,4 +593,11 @@ int main(void)
         */
     }
 }
+
+
+
+
+
+
+
 #endif

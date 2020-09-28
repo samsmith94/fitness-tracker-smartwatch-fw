@@ -450,6 +450,16 @@ void line_draw(uint16_t x_0, uint16_t y_0, uint16_t x_1, int16_t y_1, uint32_t c
 
 /******************************************************************************/
 
+
+void st7735_sleep_in(void)
+{
+    write_command(ST7735_SLPIN);
+}
+void st7735_sleep_out(void)
+{
+    write_command(ST7735_SLPOUT);
+}
+
 void draw_widget(widget_t widget, uint8_t start_x, uint8_t start_y)
 {
     int i;
