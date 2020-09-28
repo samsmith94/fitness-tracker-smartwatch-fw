@@ -1,5 +1,8 @@
 #include "calendar.h"
 
+#define __USE_XOPEN
+#define _GNU_SOURCE
+
 static struct tm time_struct, m_tm_return_time; 
 static time_t m_time, m_last_calibrate_time = 0;
 static float m_calibrate_factor = 0.0f;
@@ -9,7 +12,7 @@ static void (*cal_event_callback)(void) = 0;
 struct tm *_time;
 char time_buff[50] = "";
 char date_buff[50] = "";
-char *week_days[] = {"Mon, Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+char *week_days[] = {"Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Mon"};
 
 void nrf_cal_init(void)
 {
@@ -101,6 +104,9 @@ void CAL_RTC_IRQHandler(void)
         
         m_time += m_rtc_increment;
         if(cal_event_callback) cal_event_callback();
+
+        NRF_LOG_INFO("CAL_RTC_IRQHandler()");
+
     }
 }
 
@@ -129,7 +135,14 @@ void set_date_and_time(void)
 	time_and_date_str[strlen(__DATE__)] = ' ';
 	strncpy(&time_and_date_str[strlen(__DATE__) + 1], __TIME__, strlen(__TIME__));
 
+    NRF_LOG_INFO("%s", time_and_date_str);
 	char *s = strptime(time_and_date_str, "%b %d %Y %H:%M:%S", &tm);
+    NRF_LOG_INFO("Hour: %d, min: %d, sec: %d", tm.tm_hour, tm.tm_min, tm.tm_sec);
+    mktime(&tm);
+    strftime(time_and_date_str, sizeof(time_and_date_str), "%b %d %Y %H:%M:%S", &tm);
+    //NRF_LOG_INFO("%s", time_and_date_str);
+    NRF_LOG_INFO("Hour: %d, min: %d, sec: %d", tm.tm_hour, tm.tm_min, tm.tm_sec);
+
 	if (s == NULL) {
 		NRF_LOG_INFO("Cannot parse date.\n");
 	}

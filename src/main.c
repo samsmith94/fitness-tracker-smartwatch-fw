@@ -193,10 +193,10 @@ void render_main_screen(void)
     
     draw_widget(bluetooth_widget, 10, 40-(14/2));
 
-
     _time = nrf_cal_get_time();
     sprintf(time_buff, "%02d:%02d", _time->tm_hour, _time->tm_min);
     sprintf(date_buff, "%d/%d %s", _time->tm_mon + 1, _time->tm_mday, week_days[_time->tm_wday]);
+
     ST7735_write_string(80-25, 26, time_buff, Font_11x18, ST7735_WHITE, ST7735_BLACK);
     ST7735_write_string(80-25, 46, date_buff, Font_7x10, ST7735_COLOR565(128, 128, 128), ST7735_BLACK);
 
@@ -271,6 +271,62 @@ void render_activity_screen(void)
 }
 
 
+/* Sleep On *******************************************************************/
+
+#define NRF52_ONRAM1_OFFRAM1  	POWER_RAM_POWER_S0POWER_On      << POWER_RAM_POWER_S0POWER_Pos      \
+												      | POWER_RAM_POWER_S1POWER_On      << POWER_RAM_POWER_S1POWER_Pos      \
+												      | POWER_RAM_POWER_S0RETENTION_On  << POWER_RAM_POWER_S0RETENTION_Pos  \
+	                            | POWER_RAM_POWER_S1RETENTION_On  << POWER_RAM_POWER_S1RETENTION_Pos; 
+												
+#define NRF52_ONRAM1_OFFRAM0    POWER_RAM_POWER_S0POWER_On      << POWER_RAM_POWER_S0POWER_Pos      \
+												      | POWER_RAM_POWER_S1POWER_On      << POWER_RAM_POWER_S1POWER_Pos      \
+												      | POWER_RAM_POWER_S0RETENTION_Off << POWER_RAM_POWER_S0RETENTION_Pos  \
+	                            | POWER_RAM_POWER_S1RETENTION_Off << POWER_RAM_POWER_S1RETENTION_Pos;														
+												
+#define NRF52_ONRAM0_OFFRAM0    POWER_RAM_POWER_S0POWER_Off     << POWER_RAM_POWER_S0POWER_Pos      \
+												      | POWER_RAM_POWER_S1POWER_Off     << POWER_RAM_POWER_S1POWER_Pos;
+												
+void configure_ram_retention(void)
+{
+    // Configure nRF52 RAM retention parameters. Set for System On 64kB RAM retention
+    NRF_POWER->RAM[0].POWER = NRF52_ONRAM1_OFFRAM0;
+    NRF_POWER->RAM[1].POWER = NRF52_ONRAM1_OFFRAM0;
+    NRF_POWER->RAM[2].POWER = NRF52_ONRAM1_OFFRAM0;
+    NRF_POWER->RAM[3].POWER = NRF52_ONRAM1_OFFRAM0;
+    NRF_POWER->RAM[4].POWER = NRF52_ONRAM1_OFFRAM0;
+    NRF_POWER->RAM[5].POWER = NRF52_ONRAM1_OFFRAM0;
+    NRF_POWER->RAM[6].POWER = NRF52_ONRAM1_OFFRAM0;
+    NRF_POWER->RAM[7].POWER = NRF52_ONRAM1_OFFRAM0;
+}
+
+#define ENTER_SYSTEM_ON_SLEEP_MODE() {  \
+    __WFE();                            \
+    __SEV();                            \
+    __WFE();                            \
+}
+
+void wakeup_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
+{
+    NRF_LOG_INFO("nRF52 wake up.");
+}
+
+#define PIN_IN_POWER_DOWN      BSP_BUTTON_1
+
+static void pin_in_power_down_gpio_init(void)
+{
+    ret_code_t err_code;
+
+    err_code = nrf_drv_gpiote_init();
+    APP_ERROR_CHECK(err_code);
+
+    nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_HITOLO(false);
+    in_config.pull = NRF_GPIO_PIN_PULLUP;
+    err_code = nrf_drv_gpiote_in_init(PIN_IN_POWER_DOWN, &in_config, wakeup_pin_handler);
+    APP_ERROR_CHECK(err_code);
+    nrf_drv_gpiote_in_event_enable(PIN_IN_POWER_DOWN, true);
+}
+
+
 /* Stopper/counter ************************************************************/
 typedef struct {
 	uint8_t min;
@@ -284,9 +340,6 @@ stopper_counter_t timer;
 
 /* Timer **********************************************************************/
 const nrf_drv_timer_t TIMER_TEST = NRF_DRV_TIMER_INSTANCE(0);
-
-
-
 
 
 uint32_t expiry_time = 50;  //5 sec
@@ -356,10 +409,15 @@ void timer_event_handler(nrf_timer_event_t event_type, void* p_context)
         nrf_drv_timer_disable(&TIMER_TEST);
         NRF_LOG_INFO("Timer expired.");
         st7735_sleep_in();
+        //TODO: háttérvilágítás lekapcsolása
+
+        
         
         //i = 0;
 
         timer_event_handler_cnt = 0;
+        //ENTER_SYSTEM_ON_SLEEP_MODE();
+        //nrf_pwr_mgmt_run();
     }
 
 }
@@ -391,6 +449,20 @@ void start_keepalive_timer(nrfx_timer_event_handler_t timer_event_cb)
 
 
 
+/*
+int main()
+{
+    //Configure RAM retention. More RAM retentpin_in_power_down_gpio_inition means increased current consumption (see electrical specification in the Product Specification, power chapter)
+    configure_ram_retention();
+
+    pin_in_power_down_gpio_init();
+
+    while(1) {
+        ENTER_SYSTEM_ON_SLEEP_MODE()
+    }
+}
+*/
+/******************************************************************************/
 
 
 /**
@@ -502,7 +574,7 @@ int main(void)
     //test_AILTL();
 
     /**************************************************************************/
-
+    st7735_sleep_out();
     while (true)
     {
         /*
