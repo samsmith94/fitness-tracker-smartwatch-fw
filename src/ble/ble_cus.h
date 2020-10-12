@@ -34,6 +34,8 @@
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
+#include "bsp.h"
+#include "led_service.h"
 
 #define DEVICE_NAME                     "Samu Sung Band 1"                      /**< Name of device. Will be included in the advertising data. */
 #define MANUFACTURER_NAME               "Samu Sung Inc."                        /**< Manufacturer. Will be passed to Device Information Service. */
@@ -52,21 +54,13 @@
 #define NEXT_CONN_PARAMS_UPDATE_DELAY   APP_TIMER_TICKS(30000)                  /**< Time between each call to sd_ble_gap_conn_param_update after the first call (30 seconds). */
 #define MAX_CONN_PARAMS_UPDATE_COUNT    3                                       /**< Number of attempts before giving up the connection parameter negotiation. */
 
-#define SEC_PARAM_BOND                  1                                       /**< Perform bonding. */
-#define SEC_PARAM_MITM                  0                                       /**< Man In The Middle protection not required. */
-#define SEC_PARAM_LESC                  0                                       /**< LE Secure Connections not enabled. */
-#define SEC_PARAM_KEYPRESS              0                                       /**< Keypress notifications not enabled. */
-#define SEC_PARAM_IO_CAPABILITIES       BLE_GAP_IO_CAPS_NONE                    /**< No I/O capabilities. */
-#define SEC_PARAM_OOB                   0                                       /**< Out Of Band data not available. */
-#define SEC_PARAM_MIN_KEY_SIZE          7                                       /**< Minimum encryption key size. */
-#define SEC_PARAM_MAX_KEY_SIZE          16                                      /**< Maximum encryption key size. */
 
 #define DEAD_BEEF                       0xDEADBEEF                              /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
 
 
 
-
+//#define PEER_MANAGER
 
 void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name);
 
@@ -78,15 +72,19 @@ void services_init(void);
 void conn_params_init(void);
 void application_timers_start(void);
 void ble_stack_init(void);
-void peer_manager_init(void);
+
 void advertising_init(void);
-void buttons_leds_init(bool * p_erase_bonds);
+void leds_init(void);
 void log_init(void);
 void power_management_init(void);
 void idle_state_handle(void);
-void advertising_start(bool erase_bonds);
+void advertising_start(void);
 
 
+
+/******************************************************************************/
+
+void led_write_handler(uint16_t conn_handle, ble_led_service_t * p_led_service, uint8_t led_state);
 
 
 #endif

@@ -45,6 +45,7 @@ SRC_FILES += \
 	$(SDK_ROOT)/components/ble/peer_manager/security_manager.c \
 	$(PROJ_DIR)/ble/ble_cus.c \
 	$(PROJ_DIR)/ble/ble_uart.c \
+	$(PROJ_DIR)/ble/led_service.c \
 	$(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52.S \
 	$(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_rtt.c \
 	$(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \

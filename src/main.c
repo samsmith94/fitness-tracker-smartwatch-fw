@@ -54,6 +54,7 @@
 
 #include "../ble/ble_uart.h"
 
+
 int main(void)
 {
     bool erase_bonds;
@@ -86,35 +87,59 @@ int main(void)
 
 #include "../ble/ble_cus.h"
 
+#define USER_LED BSP_BOARD_LED_1
+
+void led_write_handler(uint16_t conn_handle, ble_led_service_t * p_led_service, uint8_t led_state);
+
 /**@brief Function for application main entry.
  */
 int main(void)
 {
-    bool erase_bonds;
-
     // Initialize.
     log_init();
     timers_init();
-    buttons_leds_init(&erase_bonds);
+    leds_init();
     power_management_init();
     ble_stack_init();
     gap_params_init();
     gatt_init();
     advertising_init();
+
+    
     services_init();
     conn_params_init();
-    peer_manager_init();
+    
+    //peer_manager_init();
 
     // Start execution.
-    NRF_LOG_INFO("Template example started.");
+    NRF_LOG_INFO("Custom BLE service started.");
     application_timers_start();
 
-    advertising_start(erase_bonds);
+    advertising_start();
 
     // Enter main loop.
     for (;;)
     {
         idle_state_handle();
+    }
+}
+
+/**@brief Function for handling write events to the LED characteristic.
+ *
+ * @param[in] p_led_service  Instance of LED Service to which the write applies.
+ * @param[in] led_state      Written/desired state of the LED.
+ */
+void led_write_handler(uint16_t conn_handle, ble_led_service_t * p_led_service, uint8_t led_state)
+{
+    if (led_state)
+    {
+        bsp_board_led_on(USER_LED);
+        NRF_LOG_INFO("Received LED ON!");
+    }
+    else
+    {
+        bsp_board_led_off(USER_LED);
+        NRF_LOG_INFO("Received LED OFF!");
     }
 }
 
