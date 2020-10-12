@@ -36,6 +36,8 @@
 
 #include "bsp.h"
 #include "led_service.h"
+#include "ble_dis.h"
+#include "ble_bas.h"
 
 #define DEVICE_NAME                     "Samu Sung Band 1"                      /**< Name of device. Will be included in the advertising data. */
 #define MANUFACTURER_NAME               "Samu Sung Inc."                        /**< Manufacturer. Will be passed to Device Information Service. */
@@ -59,6 +61,8 @@
 
 
 
+
+#define BATTERY_LEVEL_MEAS_INTERVAL         APP_TIMER_TICKS(2000)                   /**< Battery level measurement interval (ticks). */
 
 //#define PEER_MANAGER
 

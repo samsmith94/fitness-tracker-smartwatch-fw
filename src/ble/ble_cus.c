@@ -11,13 +11,70 @@ static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                        
  */
 
 BLE_LED_SERVICE_DEF(m_led_service);
+BLE_BAS_DEF(m_bas);                                                 /**< Structure used to identify the battery service. */
+
+
+APP_TIMER_DEF(m_battery_timer_id);                                  /**< Battery timer. */
+
+
+
+
 
 
 // YOUR_JOB: Use UUIDs for service(s) used in your application.
 static ble_uuid_t m_adv_uuids[] =                                               /**< Universally unique service identifiers. */
 {
-    {BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}
+    {BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE},
+    {BLE_UUID_HEART_RATE_SERVICE, BLE_UUID_TYPE_BLE}
 };
+
+
+
+
+/******************************************************************************/
+uint8_t battery_charge_level_get(void)
+{
+    return 78;
+}
+
+/**@brief Function for performing battery measurement and updating the Battery Level characteristic
+ *        in Battery Service.
+ */
+static void battery_level_update(void)
+{
+    ret_code_t err_code;
+    uint8_t  battery_level;
+
+    battery_level = battery_charge_level_get();
+
+    err_code = ble_bas_battery_level_update(&m_bas, battery_level, BLE_CONN_HANDLE_ALL);
+    if ((err_code != NRF_SUCCESS) &&
+        (err_code != NRF_ERROR_INVALID_STATE) &&
+        (err_code != NRF_ERROR_RESOURCES) &&
+        (err_code != NRF_ERROR_BUSY) &&
+        (err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING)
+       )
+    {
+        APP_ERROR_HANDLER(err_code);
+    }
+}
+
+/**@brief Function for handling the Battery measurement timer timeout.
+ *
+ * @details This function will be called each time the battery level measurement timer expires.
+ *
+ * @param[in] p_context  Pointer used for passing some arbitrary information (context) from the
+ *                       app_start_timer() call to the timeout handler.
+ */
+static void battery_level_meas_timeout_handler(void * p_context)
+{
+    UNUSED_PARAMETER(p_context);
+    battery_level_update();
+}
+/******************************************************************************/
+
+
+
 
 
 /**@brief Callback function for asserts in the SoftDevice.
@@ -56,6 +113,11 @@ void timers_init(void)
        ret_code_t err_code;
        err_code = app_timer_create(&m_app_timer_id, APP_TIMER_MODE_REPEATED, timer_timeout_handler);
        APP_ERROR_CHECK(err_code); */
+
+    err_code = app_timer_create(&m_battery_timer_id,
+                                APP_TIMER_MODE_REPEATED,
+                                battery_level_meas_timeout_handler);
+    APP_ERROR_CHECK(err_code);
 }
 
 
@@ -155,7 +217,7 @@ void services_init(void)
     qwr_init.error_handler = nrf_qwr_error_handler;
 
     err_code = nrf_ble_qwr_init(&m_qwr, &qwr_init);
-    APP_ERROR_CHECK(err_code);
+    APP_ERROR_CHECK(err_code);;
 
     /* YOUR_JOB: Add code to initialize the services used by the application.
        ble_xxs_init_t                     xxs_init;
@@ -185,6 +247,35 @@ void services_init(void)
     led_init.led_write_handler = led_write_handler;
 
     err_code = ble_led_service_init(&m_led_service, &led_init);
+    APP_ERROR_CHECK(err_code);
+
+
+    ble_bas_init_t bas_init;
+    // Initialize Battery Service.
+    memset(&bas_init, 0, sizeof(bas_init));
+
+    bas_init.evt_handler          = NULL;
+    bas_init.support_notification = true;
+    bas_init.p_report_ref         = NULL;
+    bas_init.initial_batt_level   = 100;
+
+    // Here the sec level for the Battery Service can be changed/increased.
+    bas_init.bl_rd_sec        = SEC_OPEN;
+    bas_init.bl_cccd_wr_sec   = SEC_OPEN;
+    bas_init.bl_report_rd_sec = SEC_OPEN;
+
+    err_code = ble_bas_init(&m_bas, &bas_init);
+    APP_ERROR_CHECK(err_code);
+
+    ble_dis_init_t     dis_init;
+    // Initialize Device Information Service.
+    memset(&dis_init, 0, sizeof(dis_init));
+
+    ble_srv_ascii_to_utf8(&dis_init.manufact_name_str, (char *)MANUFACTURER_NAME);
+
+    dis_init.dis_char_rd_sec = SEC_OPEN;
+
+    err_code = ble_dis_init(&dis_init);
     APP_ERROR_CHECK(err_code);
 
 }
@@ -254,7 +345,8 @@ void application_timers_start(void)
        ret_code_t err_code;
        err_code = app_timer_start(m_app_timer_id, TIMER_INTERVAL, NULL);
        APP_ERROR_CHECK(err_code); */
-
+    ret_code_t err_code = app_timer_start(m_battery_timer_id, BATTERY_LEVEL_MEAS_INTERVAL, NULL);
+    APP_ERROR_CHECK(err_code);
 }
 
 

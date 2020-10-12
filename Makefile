@@ -103,6 +103,8 @@ SRC_FILES += \
 	$(SDK_ROOT)/components/ble/nrf_ble_qwr/nrf_ble_qwr.c \
 	$(SDK_ROOT)/external/utf_converter/utf.c \
 	$(SDK_ROOT)/components/ble/ble_services/ble_nus/ble_nus.c \
+	$(SDK_ROOT)/components/ble/ble_services/ble_bas/ble_bas.c \
+	$(SDK_ROOT)/components/ble/ble_services/ble_dis/ble_dis.c \
 	$(SDK_ROOT)/components/softdevice/common/nrf_sdh.c \
 	$(SDK_ROOT)/components/softdevice/common/nrf_sdh_ble.c \
 	$(SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
