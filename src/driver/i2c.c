@@ -11,8 +11,8 @@ void i2c_init(void)
     ret_code_t err_code;
 
     const nrf_drv_twi_config_t twi_config = {
-        .scl = NRF_GPIO_PIN_MAP(0, 24),
-        .sda = NRF_GPIO_PIN_MAP(0, 16),
+        .scl = NRF_GPIO_PIN_MAP(0, 20),
+        .sda = NRF_GPIO_PIN_MAP(0, 19),
         //.scl = NRF_GPIO_PIN_MAP(0, 7),
         //.sda = NRF_GPIO_PIN_MAP(1, 0),
         .frequency = NRF_DRV_TWI_FREQ_100K,

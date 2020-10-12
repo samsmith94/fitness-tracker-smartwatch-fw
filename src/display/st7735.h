@@ -111,13 +111,14 @@
 #define ST7735_COLOR565(r, g, b) (((r & 0xF8) << 8) | ((g & 0xFC) << 3) | ((b & 0xF8) >> 3))
 
 //#define ST7735_RESET_PIN        ??
-#define ST7735_DC_PIN           NRF_GPIO_PIN_MAP(0, 12)
 
-#define ST7735_SPI_SS_PIN       NRF_GPIO_PIN_MAP(0, 11)
-#define ST7735_SPI_MISO_PIN     NRF_GPIO_PIN_MAP(0, 15)
-#define ST7735_SPI_MOSI_PIN     NRF_GPIO_PIN_MAP(0, 14)
-#define ST7735_SPI_SCK_PIN      NRF_GPIO_PIN_MAP(0, 7)
+#define ST7735_SPI_SCK_PIN      NRF_GPIO_PIN_MAP(0, 22)
+#define ST7735_SPI_MOSI_PIN     NRF_GPIO_PIN_MAP(0, 23)
 
+#define ST7735_DC_PIN           NRF_GPIO_PIN_MAP(0, 24)
+#define ST7735_SPI_SS_PIN       NRF_GPIO_PIN_MAP(0, 25)
+
+#define ST7735_SPI_MISO_PIN     NRF_GPIO_PIN_MAP(0, 26) //nincs használva
 
 void command_list(void);
 void set_addr_window(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1);

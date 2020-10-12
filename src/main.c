@@ -479,6 +479,9 @@ int main(void)
 
     bsp_board_init(BSP_INIT_LEDS);
 
+    //bsp_board_leds_on();
+    
+    /*
     const app_uart_comm_params_t comm_params =
     {
         NRF_GPIO_PIN_MAP(0, 29),
@@ -497,8 +500,12 @@ int main(void)
                        APP_IRQ_PRIORITY_LOWEST,
                        err_code);
     APP_ERROR_CHECK(err_code);
+    */
 
     /* Display ****************************************************************/
+    
+    NRF_LOG_INFO("Hello World");
+    
     nrf_delay_ms(20);
     st7735_init();
     nrf_delay_ms(20);

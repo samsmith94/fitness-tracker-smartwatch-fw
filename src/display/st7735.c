@@ -10,13 +10,13 @@ static inline void spi_write(const void * data, size_t size)
 
 static inline void write_command(uint8_t c)
 {
-    nrf_gpio_pin_clear(NRF_GPIO_PIN_MAP(0, 12));
+    nrf_gpio_pin_clear(ST7735_DC_PIN);
     spi_write(&c, sizeof(c));
 }
 
 static inline void write_data(uint8_t c)
 {
-    nrf_gpio_pin_set(NRF_GPIO_PIN_MAP(0, 12));
+    nrf_gpio_pin_set(ST7735_DC_PIN);
     spi_write(&c, sizeof(c));
 }
 
@@ -152,7 +152,10 @@ ret_code_t hardware_init(void)
 {
     ret_code_t err_code;
 
+    NRF_LOG_INFO("hardware_init");
     nrf_gpio_cfg_output(ST7735_DC_PIN);
+
+    NRF_LOG_INFO("nrf_gpio_cfg_output");
 
     nrf_drv_spi_config_t spi_config = NRF_DRV_SPI_DEFAULT_CONFIG;
 

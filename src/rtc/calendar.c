@@ -24,6 +24,7 @@ void nrf_cal_init(void)
     
     // Configure the RTC for 1 minute wakeup (default)
     CAL_RTC->PRESCALER = 0xFFF;
+    // dupla olyan gyorsCAL_RTC->PRESCALER = 0x800;
     CAL_RTC->EVTENSET = RTC_EVTENSET_COMPARE0_Msk;
     CAL_RTC->INTENSET = RTC_INTENSET_COMPARE0_Msk;
     CAL_RTC->CC[0] = m_rtc_increment * 8;
@@ -37,9 +38,19 @@ void nrf_cal_set_callback(void (*callback)(void), uint32_t interval)
     // Set the calendar callback, and set the callback interval in seconds
     cal_event_callback = callback;
     m_rtc_increment = interval;
+    
     m_time += CAL_RTC->COUNTER / 8;
+
+
     CAL_RTC->TASKS_CLEAR = 1;
-    CAL_RTC->CC[0] = interval * 8;  
+    CAL_RTC->CC[0] = interval * 8;
+
+    //ha az interval = 1, akkor a callback 1/8 sec azaz 0,125
+    //CAL_RTC->CC[0] = interval;
+
+    //de ha
+    //CAL_RTC->PRESCALER = 0x800; akkor az FFF-nél dupla olyan gyors, vagyis 0,0625 ... 0,125 ... 0,1875 ... 0,25 ...
+    //csak hát így nem lehet 0,1 sec-et csinálni a stopperhez, jobban utána kéne járni a prescalernek, stb...
 }
  
 void nrf_cal_set_time(uint32_t year, uint32_t month, uint32_t day, uint32_t hour, uint32_t minute, uint32_t second)
@@ -158,7 +169,7 @@ void calendar_init(void)
     while(NRF_CLOCK->EVENTS_HFCLKSTARTED == 0);
 
     nrf_cal_init();
-    nrf_cal_set_callback(calendar_updated, 4);
+    nrf_cal_set_callback(calendar_updated, 1);
 
     set_date_and_time();
 }
