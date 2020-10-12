@@ -153,6 +153,9 @@ int main(void)
         } while ((key != '\n'));
         if (key == '\n') {
             SEGGER_RTT_printf(0, "Received: %s", RTT_String);
+
+            battery_charge_level = atoi(RTT_String);
+
             memset(RTT_String, '\0', 20);
             rx_index = 0;
             

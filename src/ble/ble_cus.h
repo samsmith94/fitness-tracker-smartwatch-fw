@@ -39,6 +39,8 @@
 #include "ble_dis.h"
 #include "ble_bas.h"
 
+extern uint8_t battery_charge_level;
+
 #define DEVICE_NAME                     "Samu Sung Band 1"                      /**< Name of device. Will be included in the advertising data. */
 #define MANUFACTURER_NAME               "Samu Sung Inc."                        /**< Manufacturer. Will be passed to Device Information Service. */
 #define APP_ADV_INTERVAL                300                                     /**< The advertising interval (in units of 0.625 ms. This value corresponds to 187.5 ms). */

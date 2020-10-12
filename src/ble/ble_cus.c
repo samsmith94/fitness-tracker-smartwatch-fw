@@ -32,9 +32,11 @@ static ble_uuid_t m_adv_uuids[] =                                               
 
 
 /******************************************************************************/
+
+uint8_t battery_charge_level = 78;
 uint8_t battery_charge_level_get(void)
 {
-    return 78;
+    return battery_charge_level;
 }
 
 /**@brief Function for performing battery measurement and updating the Battery Level characteristic
