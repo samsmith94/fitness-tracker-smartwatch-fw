@@ -1,3 +1,5 @@
+#ifdef BLE_UART
+
 #include "ble_uart.h"
 
 static uint16_t   m_conn_handle          = BLE_CONN_HANDLE_INVALID;                 /**< Handle of the current connection. */
@@ -581,3 +583,4 @@ void advertising_start(void)
     APP_ERROR_CHECK(err_code);
 }
 
+#endif

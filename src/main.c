@@ -47,8 +47,10 @@
  *
  */
 
-//#define TEST_BLE
-#ifdef TEST_BLE
+
+#define BLE_CUS_TEST
+//#define TEST_BLE_UART
+#ifdef TEST_BLE_UART
 
 #include "../ble/ble_uart.h"
 
@@ -80,6 +82,42 @@ int main(void)
         idle_state_handle();
     }
 }
+#elif defined(BLE_CUS_TEST)
+
+#include "../ble/ble_cus.h"
+
+/**@brief Function for application main entry.
+ */
+int main(void)
+{
+    bool erase_bonds;
+
+    // Initialize.
+    log_init();
+    timers_init();
+    buttons_leds_init(&erase_bonds);
+    power_management_init();
+    ble_stack_init();
+    gap_params_init();
+    gatt_init();
+    advertising_init();
+    services_init();
+    conn_params_init();
+    peer_manager_init();
+
+    // Start execution.
+    NRF_LOG_INFO("Template example started.");
+    application_timers_start();
+
+    advertising_start(erase_bonds);
+
+    // Enter main loop.
+    for (;;)
+    {
+        idle_state_handle();
+    }
+}
+
 #else
 
 #include <stdbool.h>

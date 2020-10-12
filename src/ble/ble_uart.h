@@ -1,6 +1,8 @@
 #ifndef BLE_UART_H
 #define BLE_UART_H
 
+#ifdef BLE_UART
+
 #include <stdint.h>
 #include <string.h>
 #include "nordic_common.h"
@@ -69,5 +71,5 @@ void conn_params_init(void);
 void advertising_start(void);
 void idle_state_handle(void);
 
-
+#endif
 #endif
