@@ -46,50 +46,30 @@ SRC_FILES += \
 	$(PROJ_DIR)/ble/ble_cus.c \
 	$(PROJ_DIR)/ble/ble_uart.c \
 	$(PROJ_DIR)/ble/led_service.c \
-	$(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52.S \
 	$(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_rtt.c \
 	$(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
 	$(SDK_ROOT)/components/libraries/log/src/nrf_log_default_backends.c \
-	$(SDK_ROOT)/components/libraries/log/src/nrf_log_frontend.c \
-	$(SDK_ROOT)/components/libraries/log/src/nrf_log_str_formatter.c \
 	$(SDK_ROOT)/components/libraries/button/app_button.c \
-	$(SDK_ROOT)/components/libraries/util/app_error.c \
-	$(SDK_ROOT)/components/libraries/util/app_error_handler_gcc.c \
-	$(SDK_ROOT)/components/libraries/util/app_error_weak.c \
 	$(SDK_ROOT)/components/libraries/fifo/app_fifo.c \
 	$(SDK_ROOT)/components/libraries/scheduler/app_scheduler.c \
 	$(SDK_ROOT)/components/libraries/timer/app_timer2.c \
 	$(SDK_ROOT)/components/libraries/uart/app_uart_fifo.c \
-	$(SDK_ROOT)/components/libraries/util/app_util_platform.c \
 	$(SDK_ROOT)/components/libraries/timer/drv_rtc.c \
 	$(SDK_ROOT)/components/libraries/hardfault/hardfault_implementation.c \
-	$(SDK_ROOT)/components/libraries/util/nrf_assert.c \
 	$(SDK_ROOT)/components/libraries/atomic_fifo/nrf_atfifo.c \
 	$(SDK_ROOT)/components/libraries/atomic_flags/nrf_atflags.c \
-	$(SDK_ROOT)/components/libraries/atomic/nrf_atomic.c \
-	$(SDK_ROOT)/components/libraries/balloc/nrf_balloc.c \
-	$(SDK_ROOT)/external/fprintf/nrf_fprintf.c \
-	$(SDK_ROOT)/external/fprintf/nrf_fprintf_format.c \
-	$(SDK_ROOT)/components/libraries/memobj/nrf_memobj.c \
 	$(SDK_ROOT)/components/libraries/pwr_mgmt/nrf_pwr_mgmt.c \
-	$(SDK_ROOT)/components/libraries/ringbuf/nrf_ringbuf.c \
 	$(SDK_ROOT)/components/libraries/experimental_section_vars/nrf_section_iter.c \
 	$(SDK_ROOT)/components/libraries/sortlist/nrf_sortlist.c \
-	$(SDK_ROOT)/components/libraries/strerror/nrf_strerror.c \
 	$(SDK_ROOT)/components/libraries/uart/retarget.c \
-	$(SDK_ROOT)/modules/nrfx/mdk/system_nrf52.c \
-	$(SDK_ROOT)/components/boards/boards.c \
 	$(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_clock.c \
 	$(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_uart.c \
-	$(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c \
 	$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_clock.c \
-	$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_gpiote.c \
 	$(SDK_ROOT)/modules/nrfx/drivers/src/prs/nrfx_prs.c \
 	$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
 	$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uarte.c \
 	$(SDK_ROOT)/components/libraries/bsp/bsp.c \
 	$(SDK_ROOT)/components/libraries/bsp/bsp_btn_ble.c \
-	$(PROJ_DIR)/main.c \
 	$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
 	$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
 	$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
@@ -108,8 +88,31 @@ SRC_FILES += \
 	$(SDK_ROOT)/components/softdevice/common/nrf_sdh.c \
 	$(SDK_ROOT)/components/softdevice/common/nrf_sdh_ble.c \
 	$(SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
-	$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_timer.c \
 	$(PROJ_DIR)/gesture/test_apds9960.c \
+	$(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52.S \
+	$(SDK_ROOT)/components/libraries/log/src/nrf_log_frontend.c \
+	$(SDK_ROOT)/components/libraries/log/src/nrf_log_str_formatter.c \
+	$(SDK_ROOT)/components/boards/boards.c \
+	$(SDK_ROOT)/components/libraries/util/app_error.c \
+	$(SDK_ROOT)/components/libraries/util/app_error_handler_gcc.c \
+	$(SDK_ROOT)/components/libraries/util/app_error_weak.c \
+	$(SDK_ROOT)/components/libraries/pwm/app_pwm.c \
+	$(SDK_ROOT)/components/libraries/util/app_util_platform.c \
+	$(SDK_ROOT)/components/libraries/util/nrf_assert.c \
+	$(SDK_ROOT)/components/libraries/atomic/nrf_atomic.c \
+	$(SDK_ROOT)/components/libraries/balloc/nrf_balloc.c \
+	$(SDK_ROOT)/external/fprintf/nrf_fprintf.c \
+	$(SDK_ROOT)/external/fprintf/nrf_fprintf_format.c \
+	$(SDK_ROOT)/components/libraries/memobj/nrf_memobj.c \
+	$(SDK_ROOT)/components/libraries/ringbuf/nrf_ringbuf.c \
+	$(SDK_ROOT)/components/libraries/strerror/nrf_strerror.c \
+	$(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_ppi.c \
+	$(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c \
+	$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_gpiote.c \
+	$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_ppi.c \
+	$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_timer.c \
+	$(PROJ_DIR)/main.c \
+	$(SDK_ROOT)/modules/nrfx/mdk/system_nrf52.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \

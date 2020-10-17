@@ -47,7 +47,7 @@
  *
  */
 
-#define BLE_CUS_TEST
+//#define BLE_CUS_TEST
 //#define TEST_BLE_UART
 #ifdef TEST_BLE_UART
 
@@ -145,20 +145,21 @@ int main(void)
         do
         {
             key = SEGGER_RTT_GetKey();
-            if (key > 0) {
+            if (key > 0)
+            {
                 RTT_String[rx_index] = (char)key;
                 rx_index++;
             }
-            
+
         } while ((key != '\n'));
-        if (key == '\n') {
+        if (key == '\n')
+        {
             SEGGER_RTT_printf(0, "Received: %s", RTT_String);
 
             battery_charge_level = atoi(RTT_String);
 
             memset(RTT_String, '\0', 20);
             rx_index = 0;
-            
         }
     }
 }
@@ -197,6 +198,7 @@ void led_write_handler(uint16_t conn_handle, ble_led_service_t *p_led_service, u
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
+#include "app_pwm.h"
 #if defined(UART_PRESENT)
 #include "nrf_uart.h"
 #endif
@@ -247,6 +249,47 @@ static inline void LOG_BINARY_DUMP(uint8_t byte)
 
 /******************************************************************************/
 
+APP_PWM_INSTANCE(PWM1, 1); // Create the instance "PWM1" using TIMER1.
+
+static volatile bool ready_flag; // A flag indicating PWM status.
+
+void pwm_ready_callback(uint32_t pwm_id) // PWM callback function
+{
+    ready_flag = true;
+}
+
+void init_display_pwm(void)
+{
+    ret_code_t err_code;
+
+    /* 2-channel PWM, 200Hz, output on DK LED pins. */
+    app_pwm_config_t pwm1_cfg = APP_PWM_DEFAULT_CONFIG_2CH(5000L, 26, 27);
+
+    /* Switch the polarity of the second channel. */
+    pwm1_cfg.pin_polarity[1] = APP_PWM_POLARITY_ACTIVE_HIGH;
+
+    /* Initialize and enable PWM. */
+    err_code = app_pwm_init(&PWM1, &pwm1_cfg, pwm_ready_callback);
+    APP_ERROR_CHECK(err_code);
+    app_pwm_enable(&PWM1);
+
+    APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 5));
+
+    /*
+    for (int i = 0; i < 5000; i++) {
+        app_pwm_channel_duty_set(&PWM1, 0, i);
+        nrf_delay_ms(10);
+    }
+    */
+}
+/*
+void start_pwm()
+{
+
+}
+*/
+/******************************************************************************/
+
 typedef struct level
 {
     struct level *next;
@@ -277,7 +320,8 @@ void prev(struct level **current_node)
     {
         (*current_node) = (*current_node)->prev;
         st7735_fill_screen(ST7735_BLACK);
-        (*current_node)->render();;
+        (*current_node)->render();
+        ;
     }
 }
 
@@ -651,6 +695,9 @@ int main(void)
     //test_ATIME();
     //test_AILTL();
 
+    /**************************************************************************/
+
+    init_display_pwm();
     /**************************************************************************/
     st7735_sleep_out();
     while (true)
