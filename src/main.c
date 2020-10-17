@@ -282,6 +282,7 @@ void init_display_pwm(void)
     }
     */
 }
+
 /*
 void start_pwm()
 {
@@ -537,6 +538,7 @@ void timer_event_handler(nrf_timer_event_t event_type, void *p_context)
         nrf_drv_timer_disable(&TIMER_TEST);
         NRF_LOG_INFO("Timer expired.");
         st7735_sleep_in();
+        APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 0));
         //TODO: háttérvilágítás lekapcsolása
 
         //i = 0;
@@ -734,6 +736,7 @@ int main(void)
         {
             prev(&current_menu);
             st7735_sleep_out();
+            APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 5));
             timer_event_handler_cnt = 0;
             start_keepalive_timer(timer_event_handler);
         }
@@ -741,6 +744,7 @@ int main(void)
         {
             next(&current_menu);
             st7735_sleep_out();
+            APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 5));
             timer_event_handler_cnt = 0;
             start_keepalive_timer(timer_event_handler);
         }
