@@ -277,7 +277,7 @@ void prev(struct level **current_node)
     {
         (*current_node) = (*current_node)->prev;
         st7735_fill_screen(ST7735_BLACK);
-        (*current_node)->render();
+        (*current_node)->render();;
     }
 }
 

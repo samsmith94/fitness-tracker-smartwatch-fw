@@ -3,6 +3,10 @@
 		{
 			"name": "fitness-tracker",
 			"path": "."
+		},
+		{
+			"name": "water-quality-monitoring",
+			"path": "..\\..\\..\\Szomby\\water-quality-monitoring"
 		}
 	],
 	"settings": {
