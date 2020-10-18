@@ -659,11 +659,11 @@ int main(void)
     current_menu->render();
 
     /* Gesture ****************************************************************/
-
-    i2c_init();
-
     apds9960_gesture_received_t gesture_received;
+/*
+    i2c_init();
     gesture_init();
+*/
     //new_gesture_init();
     gpio_init();
 
@@ -702,6 +702,9 @@ int main(void)
     init_display_pwm();
     /**************************************************************************/
     st7735_sleep_out();
+
+
+    example_main_double_tap_lsm6dsox();
     while (true)
     {
         /*

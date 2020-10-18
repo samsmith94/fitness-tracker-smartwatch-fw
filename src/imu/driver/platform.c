@@ -48,6 +48,13 @@
 #include "lsm6dsox_reg.h"
 #include "platform.h"
 
+//#define LSM6DSOX_USE_SPI
+#define LSM6DSOX_USE_I2C
+
+#ifdef LSM6DSOX_USE_I2C
+#include "../driver/i2c.h"
+#endif
+
 /* Private macro -------------------------------------------------------------*/
 //TODO: meg kell nézni hol lesznek a pinek, mert csak a kijelző pinjei lettek átmásolva
 #define LSM6DSOX_INT_PIN        NRF_GPIO_PIN_MAP(0, 29)
@@ -159,14 +166,28 @@ void example_main_double_tap_lsm6dsox(void)
 	/* Init test platform */
 	platform_init();
 
+	
+
 	/* Wait sensor boot time */
 	platform_delay(10);
 
+
 	/* Check device ID */
+	
 	lsm6dsox_device_id_get(&dev_ctx, &whoamI);
+	platform_delay(10);
+	NRF_LOG_INFO("%d", whoamI);
 	if (whoamI != LSM6DSOX_ID)
 		while (1)
 			;
+
+	/*
+	while (1) {
+		lsm6dsox_device_id_get(&dev_ctx, &whoamI);
+		nrf_delay_ms(100);
+	}
+	*/
+	tx_com("example_main_double_tap_lsm6dsox", strlen("example_main_double_tap_lsm6dsox"));
 
 	/* Restore default configuration */
 	lsm6dsox_reset_set(&dev_ctx, PROPERTY_ENABLE);
@@ -230,8 +251,10 @@ void example_main_double_tap_lsm6dsox(void)
 	int2_route.single_tap = PROPERTY_ENABLE;
 	lsm6dsox_pin_int2_route_set(&dev_ctx, NULL, int2_route);
 
+
 	/* Wait Events */
 	while (1) {
+		//tx_com("while", strlen("while"));
 		lsm6dsox_all_sources_t all_source;
 
 		/* Check if Tap events */
@@ -758,9 +781,12 @@ static void interrupt_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_
  */
 static int32_t platform_write(void *handle, uint8_t reg, uint8_t *bufp, uint16_t len)
 {
+#ifdef LSM6DSOX_USE_I2C
+	i2c_write((uint8_t)LSM6DSOX_I2C_ADD_L>>1, reg, bufp, len);
+#else
     APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, &reg, 1, NULL, 0));
     APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, bufp, len, NULL, 0));
-
+#endif
 	return 0;
 }
 
@@ -776,10 +802,13 @@ static int32_t platform_write(void *handle, uint8_t reg, uint8_t *bufp, uint16_t
  */
 static int32_t platform_read(void *handle, uint8_t reg, uint8_t *bufp, uint16_t len)
 {
+#ifdef LSM6DSOX_USE_I2C
+	i2c_read((uint8_t)LSM6DSOX_I2C_ADD_L>>1, reg, bufp, len);
+#else
     /* Read command */
     reg |= 0x80;
     APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, &reg, 1, bufp, len));
-
+#endif
 	return 0;
 }
 
@@ -813,7 +842,7 @@ static void platform_init(void)
 {
     ret_code_t err_code;
 
-
+	/*
     err_code = nrf_drv_gpiote_init();
     APP_ERROR_CHECK(err_code);
 
@@ -825,9 +854,14 @@ static void platform_init(void)
     APP_ERROR_CHECK(err_code);
 
     nrf_drv_gpiote_in_event_enable(LSM6DSOX_INT_PIN, true);
+	*/
+	
+
     /**************************************************************************/
 
-
+#ifdef LSM6DSOX_USE_I2C
+	i2c_init();
+#else
     nrf_drv_spi_config_t spi_config = NRF_DRV_SPI_DEFAULT_CONFIG;
 
     spi_config.sck_pin  = LSM6DSOX_SPI_SCK_PIN;
@@ -837,6 +871,7 @@ static void platform_init(void)
 
     err_code = nrf_drv_spi_init(&spi, &spi_config, NULL, NULL);
     return err_code;
+#endif
 }
 
 

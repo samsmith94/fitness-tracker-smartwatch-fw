@@ -7,6 +7,10 @@
 		{
 			"name": "water-quality-monitoring",
 			"path": "..\\..\\..\\Szomby\\water-quality-monitoring"
+		},
+		{
+			"name": "bluepill_lorawan",
+			"path": "..\\..\\..\\Szomby\\bluepill_lorawan"
 		}
 	],
 	"settings": {
