@@ -660,12 +660,18 @@ int main(void)
 
     /* Gesture ****************************************************************/
     apds9960_gesture_received_t gesture_received;
-/*
-    i2c_init();
-    gesture_init();
-*/
+
+
     //new_gesture_init();
     gpio_init();
+
+#define TEST_GESTURE
+#ifdef TEST_GESTURE
+    i2c_init();
+    gesture_init();
+#else
+    example_main_double_tap_lsm6dsox();
+#endif
 
     /* Timer ******************************************************************/
     /*
@@ -704,7 +710,7 @@ int main(void)
     st7735_sleep_out();
 
 
-    example_main_double_tap_lsm6dsox();
+    
     while (true)
     {
         /*
