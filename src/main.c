@@ -663,14 +663,16 @@ int main(void)
 
 
     //new_gesture_init();
-    gpio_init();
+    //gpio_init();
 
-#define TEST_GESTURE
+//#define TEST_GESTURE
 #ifdef TEST_GESTURE
     i2c_init();
     gesture_init();
 #else
-    example_main_double_tap_lsm6dsox();
+    i2c_init();
+    gesture_init();
+    example_main_double_tap_lsm6dsox_init();
 #endif
 
     /* Timer ******************************************************************/

@@ -116,7 +116,7 @@ void CAL_RTC_IRQHandler(void)
         m_time += m_rtc_increment;
         if(cal_event_callback) cal_event_callback();
 
-        NRF_LOG_INFO("CAL_RTC_IRQHandler()");
+        //NRF_LOG_INFO("CAL_RTC_IRQHandler()");
 
     }
 }

@@ -1,6 +1,6 @@
 #include "st7735.h"
 
-#define SPI_INSTANCE 1
+#define SPI_INSTANCE 2
 static const nrf_drv_spi_t spi = NRF_DRV_SPI_INSTANCE(SPI_INSTANCE);
 
 static inline void spi_write(const void * data, size_t size)
