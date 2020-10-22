@@ -15,7 +15,19 @@
 	],
 	"settings": {
 		"files.associations": {
-			"type_traits": "c"
+			"type_traits": "c",
+			"array": "c",
+			"string_view": "c",
+			"initializer_list": "c",
+			"utility": "c",
+			"deque": "c",
+			"list": "c",
+			"queue": "c",
+			"random": "c",
+			"vector": "c",
+			"xhash": "c",
+			"xstring": "c",
+			"xutility": "c"
 		}
 	}
 }

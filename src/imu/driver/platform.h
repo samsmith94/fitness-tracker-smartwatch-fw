@@ -27,13 +27,30 @@
 
 #include "nrfx_spim.h"
 
-void example_main_double_tap_lsm6dsox(void);
+#define IMU_INT1 NRF_GPIO_PIN_MAP(0, 7)
+#define IMU_INT2 NRF_GPIO_PIN_MAP(0, 8)
 
-void example_main_tilt_lsm6dsox(void);
+//#define LSM6DSOX_USE_SPI
+#define LSM6DSOX_USE_I2C
+
+#if defined(LSM6DSOX_USE_I2C)
+
+#define IMU_TWI_SCL_PIN     NRF_GPIO_PIN_MAP(0, 5)
+#define IMU_TWI_SDA_PIN     NRF_GPIO_PIN_MAP(0, 6)
+
+#elif defined(LSM6DSOX_USE_SPI)
+
+#define IMU_SPI_SCK_PIN NRF_GPIO_PIN_MAP(0, 29)
+#define IMU_SPI_MISO_PIN NRF_GPIO_PIN_MAP(0, 29)
+#define IMU_SPI_MOSI_PIN NRF_GPIO_PIN_MAP(0, 29)
+#define IMU_SPI_SS_PIN NRF_GPIO_PIN_MAP(0, 29)
+
+#endif
+
+void example_main_double_tap_lsm6dsox(void);
 void lsm6dsox_activity(void);
 void lsm6dsox_fifo_pedo_simple(void);
 void example_main_orientation_lsm6dsox(void);
 void lsm6dsox_read_data_simple(void);
-void lsm6dsox_fsm(void);
 
 #endif /* INC_PLATFORM_H_ */
