@@ -473,13 +473,13 @@ void example_main_double_tap_lsm6dsox_init(void)
 	lsm6dsox_tap_mode_set(&g_dev_ctx, LSM6DSOX_BOTH_SINGLE_DOUBLE);
 
 	/* For single tap only uncomments next function */
-	//lsm6dsox_tap_mode_set(&dev_ctx, LSM6DSOX_ONLY_SINGLE);
+	//lsm6dsox_tap_mode_set(&g_dev_ctx, LSM6DSOX_ONLY_SINGLE);
 	/* Enable interrupt generation on Single and Double Tap INT1 pin */
-	//lsm6dsox_pin_int1_route_get(&dev_ctx, &int1_route);
+	//lsm6dsox_pin_int1_route_get(&g_dev_ctx, &int1_route);
 	/* For single tap only comment next function */
-	//int1_route.reg.md1_cfg.int1_double_tap = PROPERTY_ENABLE;
-	//int1_route.reg.md1_cfg.int1_single_tap = PROPERTY_ENABLE;
-	//lsm6dsox_pin_int1_route_set(&dev_ctx, &int1_route);
+	//int1_route.double_tap = PROPERTY_ENABLE;
+	//int1_route.single_tap = PROPERTY_ENABLE;
+	//lsm6dsox_pin_int1_route_set(&g_dev_ctx, int1_route);
 	/* Uncomment if interrupt generation on Single and Double Tap INT2 pin */
 	lsm6dsox_pin_int2_route_get(&g_dev_ctx, NULL, &int2_route);
 
