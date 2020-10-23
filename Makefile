@@ -113,6 +113,7 @@ SRC_FILES += \
 	$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_timer.c \
 	$(PROJ_DIR)/main.c \
 	$(SDK_ROOT)/modules/nrfx/mdk/system_nrf52.c \
+	$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_systick.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \

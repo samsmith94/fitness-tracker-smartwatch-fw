@@ -564,6 +564,10 @@ void lsm6dsox_tilt_init(void)
 	}
 }
 
+
+
+uint16_t step_count;
+
 void lsm6dsox_fifo_pedo_init(void)
 {
 	lsm6dsox_emb_sens_t emb_sens;
@@ -573,6 +577,7 @@ void lsm6dsox_fifo_pedo_init(void)
 	/* Uncomment to configure INT 2 */
 	lsm6dsox_pin_int2_route_t int2_route;
 
+#if 0
 	g_dev_ctx.write_reg = platform_write;
 	g_dev_ctx.read_reg = platform_read;
 	g_dev_ctx.handle = &imu_m_twi;
@@ -588,7 +593,7 @@ void lsm6dsox_fifo_pedo_init(void)
 	if (whoamI != LSM6DSOX_ID)
 		while (1)
 			;
-
+			
 	/* Restore default configuration */
 	lsm6dsox_reset_set(&g_dev_ctx, PROPERTY_ENABLE);
 	do
@@ -598,6 +603,7 @@ void lsm6dsox_fifo_pedo_init(void)
 
 	/* Disable I3C interface */
 	lsm6dsox_i3c_disable_set(&g_dev_ctx, LSM6DSOX_I3C_DISABLE);
+#endif
 
 	/* Set XL full scale */
 	lsm6dsox_xl_full_scale_set(&g_dev_ctx, LSM6DSOX_2g);
@@ -641,32 +647,36 @@ void lsm6dsox_fifo_pedo_init(void)
 	/* Enable HW Timestamp */
 	//lsm6dsox_timestamp_set(&g_dev_ctx, PROPERTY_ENABLE);
 
-
-
-
-		/* Enable pedometer */
+	/* Enable pedometer */
 	lsm6dsox_pedo_sens_set(&g_dev_ctx, LSM6DSOX_PEDO_BASE_MODE);
 	emb_sens.step = PROPERTY_ENABLE;
 	lsm6dsox_embedded_sens_set(&g_dev_ctx, &emb_sens);
 	//lsm6dsox_fifo_pedo_batch_set(&g_dev_ctx, PROPERTY_ENABLE);
 	lsm6dsox_steps_reset(&g_dev_ctx);
 
-	
 	/* Set Output Data Rate */
-	lsm6dsox_xl_data_rate_set(&g_dev_ctx, LSM6DSOX_XL_ODR_26Hz);
+	//lsm6dsox_xl_data_rate_set(&g_dev_ctx, LSM6DSOX_XL_ODR_26Hz);
+	lsm6dsox_xl_data_rate_set(&g_dev_ctx, LSM6DSOX_XL_ODR_417Hz);
 
+
+	/*
 	while (1)
 	{
-		static uint16_t steps;;
-
-		/* Read steps */
-		
-		lsm6dsox_number_of_steps_get(&g_dev_ctx, (uint8_t *)&steps);
-		sprintf((char *)tx_buffer, "steps :%d\r\n", steps);
-		tx_com(tx_buffer, strlen((char const *)tx_buffer));
+		step_count = lsm6dsox_read_steps();
 		nrf_delay_ms(1000);
-		
 	}
+	*/
+}
+
+void lsm6dsox_read_steps(void)
+{
+	uint16_t steps;
+	/* Read steps */
+	lsm6dsox_number_of_steps_get(&g_dev_ctx, (uint8_t *)&steps);
+	sprintf((char *)tx_buffer, "Steps :%d\r\n", step_count);
+	tx_com(tx_buffer, strlen((char const *)tx_buffer));
+	
+	step_count = steps;
 }
 
 void lsm6dsox_read_data_init(void)
@@ -1013,7 +1023,7 @@ static void platform_init(void)
 static void int2_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
 	NRF_LOG_INFO("int2_pin_handler() called.");
-	//lsm6dsox_double_tap_irq_handler();
+	lsm6dsox_double_tap_irq_handler();
 	//lsm6dsox_read_data_init_irq_handler();
 	//lsm6dsox_fifo_pedo_irq_handler();
 }

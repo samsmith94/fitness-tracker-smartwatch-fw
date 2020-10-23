@@ -216,6 +216,7 @@ void led_write_handler(uint16_t conn_handle, ble_led_service_t *p_led_service, u
 #include "nrf_drv_timer.h"
 
 #include "test_apds9960.h"
+#include "nrf_drv_systick.h"
 
 //#include "nrf_timer.h"
 
@@ -661,7 +662,6 @@ int main(void)
     /* Gesture ****************************************************************/
     apds9960_gesture_received_t gesture_received;
 
-
     //new_gesture_init();
     //gpio_init();
 
@@ -672,13 +672,12 @@ int main(void)
 #else
     i2c_init();
     gesture_init();
-    
-    
-    //lsm6dsox_double_tap_init();
+
+    lsm6dsox_double_tap_init();
     //lsm6dsox_read_data_init();
 
-
-    lsm6dsox_fifo_pedo_init();
+    lsm6dsox_fifo_pedo_init();;
+    
 #endif
 
     /* Timer ******************************************************************/
@@ -717,10 +716,21 @@ int main(void)
     /**************************************************************************/
     st7735_sleep_out();
 
+    /* Init systick driver */
+    /*nrf_drv_systick_init();
+    nrfx_systick_state_t p_state;
 
-    
+    while (1)
+    {
+        nrf_drv_systick_delay_ms(1000);
+        nrfx_systick_get(&p_state);
+        NRF_LOG_INFO("systick: %lu", p_state.time);
+    }
+    */
+
     while (true)
     {
+
         /*
         st7735_sleep_in();
         nrf_delay_ms(1000);
@@ -765,7 +775,15 @@ int main(void)
             timer_event_handler_cnt = 0;
             start_keepalive_timer(timer_event_handler);
         }
+        else if (gesture_received == ADPS9960_INVALID) {
+            lsm6dsox_read_steps();
+            NRF_LOG_INFO("WHILE");
+        }
         nrf_delay_ms(50);
+        
+        
+        
+        
 
         /**********************************************************************/
         /*
