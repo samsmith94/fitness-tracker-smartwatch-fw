@@ -47,17 +47,59 @@
 
 #endif
 
+typedef union
+{
+	int16_t i16bit[3];
+	uint8_t u8bit[6];
+} axis3bit16_t;
+
+typedef union
+{
+	int16_t i16bit;
+	uint8_t u8bit[2];
+} axis1bit16_t;
 
 
-void lsm6dsox_double_tap_init(void);
-void lsm6dsox_tilt_init(void);
-void lsm6dsox_fifo_pedo_init(void);
+typedef union
+{
+	struct
+	{
+		uint16_t step_count;
+		uint32_t timestamp;
+#ifdef __GNUC__
+	} __attribute__((__packed__));
+#else  /* __GNUC__ */
+	};
+#endif /* __GNUC__ */
+	uint8_t byte[6];
+} pedo_count_sample_t;
+
+extern const nrf_drv_twi_t imu_m_twi;
+
+extern stmdev_ctx_t g_dev_ctx;
 
 extern uint16_t step_count;
+extern uint8_t whoamI, rst;
+extern uint8_t tx_buffer[1000];
+
+int32_t platform_write(void *handle, uint8_t reg, uint8_t *bufp, uint16_t len);
+int32_t platform_read(void *handle, uint8_t reg, uint8_t *bufp, uint16_t len);
+void tx_com(uint8_t *tx_buffer, uint16_t len);
+void platform_delay(uint32_t ms);
+void platform_init(void);
+
+/******************************************************************************/
+
+void lsm6dsox_tilt_init(void);
+void lsm6dsox_fifo_pedo_init(void);
 
 void lsm6dsox_read_steps(void);
 
 void lsm6dsox_read_data_init(void);
 void lsm6dsox_fsm_init(void);
+
+void lsm6dsox_fifo_pedo_irq_handler(void);
+void lsm6dsox_read_data_irq_handler(void);
+void lsm6dsox_double_tap_irq_handler(void);
 
 #endif /* INC_PLATFORM_H_ */

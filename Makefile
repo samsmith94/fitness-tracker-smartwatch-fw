@@ -23,6 +23,9 @@ SRC_FILES += \
 	$(PROJ_DIR)/rtc/calendar.c \
 	$(PROJ_DIR)/imu/driver/lsm6dsox_reg.c \
 	$(PROJ_DIR)/imu/driver/platform.c \
+	$(PROJ_DIR)/imu/driver/lsm6dsox_fifo_pedo.c \
+	$(PROJ_DIR)/imu/driver/lsm6dsox_read_data.c \
+	$(PROJ_DIR)/imu/driver/lsm6dsox_tap.c \
 	$(PROJ_DIR)/fuel_gauge/lc709203.c \
 	$(PROJ_DIR)/driver/i2c.c \
 	$(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_uart.c \
