@@ -394,11 +394,12 @@ static void int2_pin_init(void);
 static void int1_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action);
 static void int1_pin_init(void);
 
-static void example_main_double_tap_lsm6dsox_irq_handler(void);
-static void lsm6dsox_read_data_simple_init_irq_handler(void);
+static void lsm6dsox_double_tap_irq_handler(void);
+static void lsm6dsox_read_data_irq_handler(void);
+static void lsm6dsox_fifo_pedo_irq_handler(void);
 
 /* Main Example --------------------------------------------------------------*/
-void example_main_double_tap_lsm6dsox_init(void)
+void lsm6dsox_double_tap_init(void)
 {
 	/* Uncomment to configure INT 1 */
 	//lsm6dsox_pin_int1_route_t int1_route;
@@ -490,7 +491,7 @@ void example_main_double_tap_lsm6dsox_init(void)
 }
 
 /* Main Example --------------------------------------------------------------*/
-void example_main_tilt_lsm6dsox(void)
+void lsm6dsox_tilt_init(void)
 {
 	/* Uncomment to configure INT 1 */
 	//lsm6dsox_pin_int1_route_t int1_route;
@@ -563,12 +564,15 @@ void example_main_tilt_lsm6dsox(void)
 	}
 }
 
-void lsm6dsox_fifo_pedo_simple(void)
+void lsm6dsox_fifo_pedo_init(void)
 {
+	lsm6dsox_emb_sens_t emb_sens;
+
 	/* Uncomment to configure INT 1 */
-	//lsm6dsox_pin_int1_route_t int1_route;
+	lsm6dsox_pin_int1_route_t int1_route;
 	/* Uncomment to configure INT 2 */
 	lsm6dsox_pin_int2_route_t int2_route;
+
 	g_dev_ctx.write_reg = platform_write;
 	g_dev_ctx.read_reg = platform_read;
 	g_dev_ctx.handle = &imu_m_twi;
@@ -602,13 +606,17 @@ void lsm6dsox_fifo_pedo_simple(void)
 	lsm6dsox_block_data_update_set(&g_dev_ctx, PROPERTY_ENABLE);
 
 	/* Set FIFO mode to Stream mode (aka Continuous Mode) */
-	lsm6dsox_fifo_mode_set(&g_dev_ctx, LSM6DSOX_STREAM_MODE);
+	//lsm6dsox_fifo_mode_set(&g_dev_ctx, LSM6DSOX_STREAM_MODE);
 
 	/* Enable latched interrupt notification. */
-	lsm6dsox_int_notification_set(&g_dev_ctx, LSM6DSOX_ALL_INT_LATCHED);
+	//lsm6dsox_int_notification_set(&g_dev_ctx, LSM6DSOX_ALL_INT_LATCHED);
+	//lsm6dsox_int_notification_set(&g_dev_ctx, LSM6DSOX_ALL_INT_PULSED);
 
 	/* Enable drdy 75 μs pulse: uncomment if interrupt must be pulsed. */
 	//lsm6dsox_data_ready_mode_set(&g_dev_ctx, LSM6DSOX_DRDY_PULSED);
+	//lsm6dsox_data_ready_mode_set(&g_dev_ctx, LSM6DSOX_DRDY_LATCHED);
+
+	//lsm6dsox_pedo_int_mode_set(&g_dev_ctx, PROPERTY_ENABLE);
 	/*
 	 * FIFO watermark interrupt routed on INT1 pin
 	 *
@@ -622,54 +630,46 @@ void lsm6dsox_fifo_pedo_simple(void)
 	 * FIFO watermark interrupt routed on INT2 pin
 	 * Uncomment to configure INT 2
 	 */
-	lsm6dsox_pin_int2_route_get(&g_dev_ctx, NULL, &int2_route);
-	int2_route.step_detector = PROPERTY_ENABLE;
+	//lsm6dsox_pin_int2_route_get(&g_dev_ctx, NULL, &int2_route);
+	//int2_route.step_detector = PROPERTY_ENABLE;
+	/*int2_route.fifo_full = PROPERTY_ENABLE;
+	int2_route.fifo_bdr = PROPERTY_ENABLE;
+	int2_route.fifo_ovr = PROPERTY_ENABLE;
+	int2_route.fifo_th = PROPERTY_ENABLE;*/
+	//lsm6dsox_pin_int2_route_set(&g_dev_ctx, NULL, int2_route);
 
-	lsm6dsox_pin_int2_route_set(&g_dev_ctx, NULL, int2_route);
 	/* Enable HW Timestamp */
-	lsm6dsox_timestamp_set(&g_dev_ctx, PROPERTY_ENABLE);
+	//lsm6dsox_timestamp_set(&g_dev_ctx, PROPERTY_ENABLE);
 
-	/* Enable pedometer */
+
+
+
+		/* Enable pedometer */
 	lsm6dsox_pedo_sens_set(&g_dev_ctx, LSM6DSOX_PEDO_BASE_MODE);
-	lsm6dsox_fifo_pedo_batch_set(&g_dev_ctx, PROPERTY_ENABLE);
+	emb_sens.step = PROPERTY_ENABLE;
+	lsm6dsox_embedded_sens_set(&g_dev_ctx, &emb_sens);
+	//lsm6dsox_fifo_pedo_batch_set(&g_dev_ctx, PROPERTY_ENABLE);
 	lsm6dsox_steps_reset(&g_dev_ctx);
 
+	
 	/* Set Output Data Rate */
 	lsm6dsox_xl_data_rate_set(&g_dev_ctx, LSM6DSOX_XL_ODR_26Hz);
 
 	while (1)
 	{
-		uint16_t num = 0;
-		lsm6dsox_fifo_tag_t reg_tag;
-		pedo_count_sample_t pedo_sample;
+		static uint16_t steps;;
 
-		/* Read FIFO samples number */
-		lsm6dsox_fifo_data_level_get(&g_dev_ctx, &num);
-		if (num > 0)
-		{
-			while (num--)
-			{
-				/* Read FIFO tag */
-				lsm6dsox_fifo_sensor_tag_get(&g_dev_ctx, &reg_tag);
-				switch (reg_tag)
-				{
-				case LSM6DSOX_STEP_CPUNTER_TAG:
-					lsm6dsox_fifo_out_raw_get(&g_dev_ctx, pedo_sample.byte);
-
-					sprintf((char *)tx_buffer, "Step Count :%u T %u\r\n",
-							(unsigned int)pedo_sample.step_count,
-							(unsigned int)pedo_sample.timestamp);
-					tx_com(tx_buffer, strlen((char const *)tx_buffer));
-					break;
-				default:
-					break;
-				}
-			}
-		}
+		/* Read steps */
+		
+		lsm6dsox_number_of_steps_get(&g_dev_ctx, (uint8_t *)&steps);
+		sprintf((char *)tx_buffer, "steps :%d\r\n", steps);
+		tx_com(tx_buffer, strlen((char const *)tx_buffer));
+		nrf_delay_ms(1000);
+		
 	}
 }
 
-void lsm6dsox_read_data_simple_init(void)
+void lsm6dsox_read_data_init(void)
 {
 	/* Uncomment to configure INT */
 	//lsm6dsox_pin_int1_route_t int1_route;
@@ -721,18 +721,18 @@ void lsm6dsox_read_data_simple_init(void)
 	/* Uncomment if interrupt generation on Free Fall INT1 pin */
 	//lsm6dsox_pin_int1_route_get(&g_dev_ctx, &int1_route);
 	//int1_route.drdy_g = PROPERTY_ENABLE;
-	//int1_route.free_fall = PROPERTY_ENABLE;
+	//int1_route.drdy_xl = PROPERTY_ENABLE;
 	//lsm6dsox_pin_int1_route_set(&g_dev_ctx, int1_route);
 
 	/* Uncomment if interrupt generation on Free Fall INT2 pin */
 	lsm6dsox_pin_int2_route_get(&g_dev_ctx, NULL, &int2_route);
-	//int2_route.free_fall = PROPERTY_ENABLE;
+	int2_route.free_fall = PROPERTY_ENABLE;
 	int2_route.drdy_g = PROPERTY_ENABLE;
 	int2_route.drdy_xl = PROPERTY_ENABLE;
 	lsm6dsox_pin_int2_route_set(&g_dev_ctx, NULL, int2_route);
 }
 
-void lsm6dsox_fsm(void)
+void lsm6dsox_fsm_init(void)
 {
 	/* Variable declaration */
 	lsm6dsox_pin_int1_route_t pin_int1_route;
@@ -1012,8 +1012,10 @@ static void platform_init(void)
 
 static void int2_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
-	//example_main_double_tap_lsm6dsox_irq_handler();
-	lsm6dsox_read_data_simple_init_irq_handler();
+	NRF_LOG_INFO("int2_pin_handler() called.");
+	//lsm6dsox_double_tap_irq_handler();
+	//lsm6dsox_read_data_init_irq_handler();
+	//lsm6dsox_fifo_pedo_irq_handler();
 }
 
 static void int2_pin_init(void)
@@ -1036,8 +1038,7 @@ static void int2_pin_init(void)
 
 static void int1_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
-	//NRF_LOG_INFO("int1_pin_handler() called.");
-	
+	NRF_LOG_INFO("int1_pin_handler() called.");
 }
 
 static void int1_pin_init(void)
@@ -1058,7 +1059,7 @@ static void int1_pin_init(void)
 	nrf_drv_gpiote_in_event_enable(IMU_INT1, true);
 }
 
-static void example_main_double_tap_lsm6dsox_irq_handler(void)
+static void lsm6dsox_double_tap_irq_handler(void)
 {
 	lsm6dsox_all_sources_t all_source;
 
@@ -1099,7 +1100,7 @@ static void example_main_double_tap_lsm6dsox_irq_handler(void)
 	}
 }
 
-static void lsm6dsox_read_data_simple_init_irq_handler(void)
+static void lsm6dsox_read_data_irq_handler(void)
 {
 	uint8_t reg;
 
@@ -1139,5 +1140,36 @@ static void lsm6dsox_read_data_simple_init_irq_handler(void)
 		sprintf((char *)tx_buffer, "Angular rate [mdps]:%4.2f\t%4.2f\t%4.2f\r\n",
 				angular_rate_mdps[0], angular_rate_mdps[1], angular_rate_mdps[2]);
 		tx_com(tx_buffer, strlen((char const *)tx_buffer));
+	}
+}
+
+static void lsm6dsox_fifo_pedo_irq_handler(void)
+{
+	uint16_t num = 0;
+	lsm6dsox_fifo_tag_t reg_tag;
+	pedo_count_sample_t pedo_sample;
+
+	/* Read FIFO samples number */
+	lsm6dsox_fifo_data_level_get(&g_dev_ctx, &num);
+	if (num > 0)
+	{
+		while (num--)
+		{
+			/* Read FIFO tag */
+			lsm6dsox_fifo_sensor_tag_get(&g_dev_ctx, &reg_tag);
+			switch (reg_tag)
+			{
+			case LSM6DSOX_STEP_CPUNTER_TAG:
+				lsm6dsox_fifo_out_raw_get(&g_dev_ctx, pedo_sample.byte);
+
+				sprintf((char *)tx_buffer, "Step Count :%u T %u\r\n",
+						(unsigned int)pedo_sample.step_count,
+						(unsigned int)pedo_sample.timestamp);
+				tx_com(tx_buffer, strlen((char const *)tx_buffer));
+				break;
+			default:
+				break;
+			}
+		}
 	}
 }

@@ -672,14 +672,13 @@ int main(void)
 #else
     i2c_init();
     gesture_init();
-    //example_main_double_tap_lsm6dsox_init();
-    lsm6dsox_read_data_simple_init();
-    //lsm6dsox_read_data_simple();
-    //example_main_tilt_lsm6dsox();
+    
+    
+    //lsm6dsox_double_tap_init();
+    //lsm6dsox_read_data_init();
 
-    //lsm6dsox_fsm();
 
-    //lsm6dsox_fifo_pedo_simple();
+    lsm6dsox_fifo_pedo_init();
 #endif
 
     /* Timer ******************************************************************/

@@ -47,13 +47,10 @@
 
 #endif
 
-void example_main_double_tap_lsm6dsox_init(void);
-
-void example_main_tilt_lsm6dsox(void);
-void lsm6dsox_fifo_pedo_simple(void);
-
-void lsm6dsox_read_data_simple_init(void);
-
-void lsm6dsox_fsm(void);
+void lsm6dsox_double_tap_init(void);
+void lsm6dsox_tilt_init(void);
+void lsm6dsox_fifo_pedo_init(void);
+void lsm6dsox_read_data_init(void);
+void lsm6dsox_fsm_init(void);
 
 #endif /* INC_PLATFORM_H_ */
