@@ -77,7 +77,7 @@ static void imu_i2c_init(nrf_drv_twi_t m_twi, nrf_drv_twi_config_t twi_config)
 	nrf_drv_twi_enable(&m_twi);
 }
 
-static void imu_i2c_read(nrf_drv_twi_t* m_twi, uint8_t slave_addr, uint8_t reg_addr, uint8_t *buff, uint16_t size)
+static void imu_i2c_read(nrf_drv_twi_t *m_twi, uint8_t slave_addr, uint8_t reg_addr, uint8_t *buff, uint16_t size)
 {
 	ret_code_t ret;
 
@@ -92,7 +92,7 @@ static void imu_i2c_read(nrf_drv_twi_t* m_twi, uint8_t slave_addr, uint8_t reg_a
 	APP_ERROR_CHECK(ret);
 }
 
-static void imu_i2c_write(nrf_drv_twi_t* m_twi, uint8_t slave_addr, uint8_t reg_addr, uint8_t *buff, uint16_t size)
+static void imu_i2c_write(nrf_drv_twi_t *m_twi, uint8_t slave_addr, uint8_t reg_addr, uint8_t *buff, uint16_t size)
 {
 	ret_code_t ret;
 
@@ -108,16 +108,15 @@ static void imu_i2c_write(nrf_drv_twi_t* m_twi, uint8_t slave_addr, uint8_t reg_
 static const nrf_drv_spi_t imu_spi = NRF_DRV_SPI_INSTANCE(SPI_INSTANCE);
 
 nrf_drv_spi_config_t imu_spi_config = {
-    .sck_pin      = IMU_SPI_SCK_PIN,
-    .mosi_pin     = IMU_SPI_MOSI_PIN,
-    .miso_pin     = IMU_SPI_MISO_PIN,
-    .ss_pin       = IMU_SPI_SS_PIN,
-    .irq_priority = SPI_DEFAULT_CONFIG_IRQ_PRIORITY,
-    .orc          = 0xFF,
-    .frequency    = NRF_DRV_SPI_FREQ_4M,
-    .mode         = NRF_DRV_SPI_MODE_0,
-    .bit_order    = NRF_DRV_SPI_BIT_ORDER_MSB_FIRST
-};
+	.sck_pin = IMU_SPI_SCK_PIN,
+	.mosi_pin = IMU_SPI_MOSI_PIN,
+	.miso_pin = IMU_SPI_MISO_PIN,
+	.ss_pin = IMU_SPI_SS_PIN,
+	.irq_priority = SPI_DEFAULT_CONFIG_IRQ_PRIORITY,
+	.orc = 0xFF,
+	.frequency = NRF_DRV_SPI_FREQ_4M,
+	.mode = NRF_DRV_SPI_MODE_0,
+	.bit_order = NRF_DRV_SPI_BIT_ORDER_MSB_FIRST};
 
 static void imu_spi_init(nrf_drv_spi_t spi, nrf_drv_spi_config_t spi_config)
 {
@@ -127,18 +126,17 @@ static void imu_spi_init(nrf_drv_spi_t spi, nrf_drv_spi_config_t spi_config)
 	return err_code;
 }
 
-static void imu_spi_read(nrf_drv_spi_t* spi, uint8_t reg_addr, uint8_t *buff, uint16_t size)
+static void imu_spi_read(nrf_drv_spi_t *spi, uint8_t reg_addr, uint8_t *buff, uint16_t size)
 {
 	APP_ERROR_CHECK(nrf_drv_spi_transfer(spi, &reg_addr, 1, buff, size));
 }
 
-static void imu_spi_write(nrf_drv_spi_t* spi, uint8_t reg_addr, uint8_t *buff, uint16_t size)
+static void imu_spi_write(nrf_drv_spi_t *spi, uint8_t reg_addr, uint8_t *buff, uint16_t size)
 {
 	APP_ERROR_CHECK(nrf_drv_spi_transfer(spi, &reg_addr, 1, NULL, 0));
 	APP_ERROR_CHECK(nrf_drv_spi_transfer(spi, buff, size, NULL, 0));
 }
 #endif
-
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -397,6 +395,8 @@ static void int1_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t act
 static void int1_pin_init(void);
 
 static void example_main_double_tap_lsm6dsox_irq_handler(void);
+static void lsm6dsox_read_data_simple_init_irq_handler(void);
+
 /* Main Example --------------------------------------------------------------*/
 void example_main_double_tap_lsm6dsox_init(void)
 {
@@ -551,6 +551,7 @@ void example_main_tilt_lsm6dsox(void)
 	while (1)
 	{
 		uint8_t is_tilt;
+		NRF_LOG_INFO("example_main_tilt_lsm6dsox while");
 
 		/* Check if Tilt events */
 		lsm6dsox_tilt_flag_data_ready_get(&g_dev_ctx, &is_tilt);
@@ -668,8 +669,14 @@ void lsm6dsox_fifo_pedo_simple(void)
 	}
 }
 
-void lsm6dsox_read_data_simple(void)
+void lsm6dsox_read_data_simple_init(void)
 {
+	/* Uncomment to configure INT */
+	//lsm6dsox_pin_int1_route_t int1_route;
+
+	/* Uncomment to configure INT 2 */
+	lsm6dsox_pin_int2_route_t int2_route;
+
 	/* Initialize mems driver interface */
 	g_dev_ctx.write_reg = platform_write;
 	g_dev_ctx.read_reg = platform_read;
@@ -708,69 +715,21 @@ void lsm6dsox_read_data_simple(void)
 	lsm6dsox_xl_full_scale_set(&g_dev_ctx, LSM6DSOX_2g);
 	lsm6dsox_gy_full_scale_set(&g_dev_ctx, LSM6DSOX_2000dps);
 
-	/*
-	 * Configure filtering chain(No aux interface)
-	 *
-	 * Accelerometer - LPF1 + LPF2 path
-	 */
-	lsm6dsox_xl_hp_path_on_out_set(&g_dev_ctx, LSM6DSOX_LP_ODR_DIV_100);
-	lsm6dsox_xl_filter_lp2_set(&g_dev_ctx, PROPERTY_ENABLE);
+	/* Enable drdy 75 μs pulse: uncomment if interrupt must be pulsed */
+	lsm6dsox_data_ready_mode_set(&g_dev_ctx, LSM6DSOX_DRDY_PULSED);
 
-	/* Read samples in polling mode (no int) */
-	while (1)
-	{
-		platform_delay(500);
-		uint8_t reg;
+	/* Uncomment if interrupt generation on Free Fall INT1 pin */
+	//lsm6dsox_pin_int1_route_get(&g_dev_ctx, &int1_route);
+	//int1_route.drdy_g = PROPERTY_ENABLE;
+	//int1_route.free_fall = PROPERTY_ENABLE;
+	//lsm6dsox_pin_int1_route_set(&g_dev_ctx, int1_route);
 
-		/* Read output only if new xl value is available */
-
-		lsm6dsox_xl_flag_data_ready_get(&g_dev_ctx, &reg);
-		if (reg)
-		{
-			// Read acceleration field data
-			memset(data_raw_acceleration.u8bit, 0x00, 3 * sizeof(int16_t));
-			lsm6dsox_acceleration_raw_get(&g_dev_ctx, data_raw_acceleration.u8bit);
-			acceleration_mg[0] = lsm6dsox_from_fs2_to_mg(data_raw_acceleration.i16bit[0]);
-			acceleration_mg[1] = lsm6dsox_from_fs2_to_mg(data_raw_acceleration.i16bit[1]);
-			acceleration_mg[2] = lsm6dsox_from_fs2_to_mg(data_raw_acceleration.i16bit[2]);
-
-			sprintf((char *)tx_buffer, "Acceleration [mg]: %d | %d | %d\r\n",
-					(int)(acceleration_mg[0]),
-					(int)(acceleration_mg[1]),
-					(int)(acceleration_mg[2]));
-			tx_com(tx_buffer, strlen((char const *)tx_buffer));
-		}
-
-		lsm6dsox_gy_flag_data_ready_get(&g_dev_ctx, &reg);
-		if (reg)
-		{
-			// Read angular rate field data
-			memset(data_raw_angular_rate.u8bit, 0x00, 3 * sizeof(int16_t));
-			lsm6dsox_angular_rate_raw_get(&g_dev_ctx, data_raw_angular_rate.u8bit);
-			angular_rate_mdps[0] = lsm6dsox_from_fs2000_to_mdps(data_raw_angular_rate.i16bit[0]);
-			angular_rate_mdps[1] = lsm6dsox_from_fs2000_to_mdps(data_raw_angular_rate.i16bit[1]);
-			angular_rate_mdps[2] = lsm6dsox_from_fs2000_to_mdps(data_raw_angular_rate.i16bit[2]);
-
-			sprintf((char *)tx_buffer, "Angular rate [mdps]: %d | %d | %d\r\n",
-					(int)(angular_rate_mdps[0]),
-					(int)(angular_rate_mdps[1]),
-					(int)(angular_rate_mdps[2]));
-			tx_com(tx_buffer, strlen((char const *)tx_buffer));
-		}
-
-		/*
-		 lsm6dsox_temp_flag_data_ready_get(&g_dev_ctx, &reg);
-		 if (reg) {
-		 // Read temperature data
-		 memset(data_raw_temperature.u8bit, 0x00, sizeof(int16_t));
-		 lsm6dsox_temperature_raw_get(&g_dev_ctx, data_raw_temperature.u8bit);
-		 temperature_degC = lsm6dsox_from_lsb_to_celsius(data_raw_temperature.i16bit);
-
-		 sprintf((char*) tx_buffer, "Temperature [degC]: %d\r\n", (int)temperature_degC);
-		 tx_com(tx_buffer, strlen((char const*) tx_buffer));
-		 }
-		 */
-	}
+	/* Uncomment if interrupt generation on Free Fall INT2 pin */
+	lsm6dsox_pin_int2_route_get(&g_dev_ctx, NULL, &int2_route);
+	//int2_route.free_fall = PROPERTY_ENABLE;
+	int2_route.drdy_g = PROPERTY_ENABLE;
+	int2_route.drdy_xl = PROPERTY_ENABLE;
+	lsm6dsox_pin_int2_route_set(&g_dev_ctx, NULL, int2_route);
 }
 
 void lsm6dsox_fsm(void)
@@ -1053,7 +1012,8 @@ static void platform_init(void)
 
 static void int2_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
-	example_main_double_tap_lsm6dsox_irq_handler();
+	//example_main_double_tap_lsm6dsox_irq_handler();
+	lsm6dsox_read_data_simple_init_irq_handler();
 }
 
 static void int2_pin_init(void)
@@ -1076,7 +1036,8 @@ static void int2_pin_init(void)
 
 static void int1_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
-	NRF_LOG_INFO("int1_pin_handler() called.");
+	//NRF_LOG_INFO("int1_pin_handler() called.");
+	
 }
 
 static void int1_pin_init(void)
@@ -1134,6 +1095,49 @@ static void example_main_double_tap_lsm6dsox_irq_handler(void)
 		else
 			strcat((char *)tx_buffer, " positive");
 		strcat((char *)tx_buffer, " sign\r\n");
+		tx_com(tx_buffer, strlen((char const *)tx_buffer));
+	}
+}
+
+static void lsm6dsox_read_data_simple_init_irq_handler(void)
+{
+	uint8_t reg;
+
+	/* Read output only if new xl value is available */
+	lsm6dsox_xl_flag_data_ready_get(&g_dev_ctx, &reg);
+	if (reg)
+	{
+		/* Read acceleration field data */
+		memset(data_raw_acceleration.u8bit, 0x00, 3 * sizeof(int16_t));
+		lsm6dsox_acceleration_raw_get(&g_dev_ctx, data_raw_acceleration.u8bit);
+		acceleration_mg[0] =
+			lsm6dsox_from_fs2_to_mg(data_raw_acceleration.i16bit[0]);
+		acceleration_mg[1] =
+			lsm6dsox_from_fs2_to_mg(data_raw_acceleration.i16bit[1]);
+		acceleration_mg[2] =
+			lsm6dsox_from_fs2_to_mg(data_raw_acceleration.i16bit[2]);
+
+		sprintf((char *)tx_buffer, "Acceleration [mg]:%4.2f\t%4.2f\t%4.2f\r\n",
+				acceleration_mg[0], acceleration_mg[1], acceleration_mg[2]);
+		tx_com(tx_buffer, strlen((char const *)tx_buffer));
+	}
+
+	/* Read output only if new gyro value is available */
+	lsm6dsox_gy_flag_data_ready_get(&g_dev_ctx, &reg);
+	if (reg)
+	{
+		/* Read angular rate field data */
+		memset(data_raw_angular_rate.u8bit, 0x00, 3 * sizeof(int16_t));
+		lsm6dsox_angular_rate_raw_get(&g_dev_ctx, data_raw_angular_rate.u8bit);
+		angular_rate_mdps[0] =
+			lsm6dsox_from_fs2000_to_mdps(data_raw_angular_rate.i16bit[0]);
+		angular_rate_mdps[1] =
+			lsm6dsox_from_fs2000_to_mdps(data_raw_angular_rate.i16bit[1]);
+		angular_rate_mdps[2] =
+			lsm6dsox_from_fs2000_to_mdps(data_raw_angular_rate.i16bit[2]);
+
+		sprintf((char *)tx_buffer, "Angular rate [mdps]:%4.2f\t%4.2f\t%4.2f\r\n",
+				angular_rate_mdps[0], angular_rate_mdps[1], angular_rate_mdps[2]);
 		tx_com(tx_buffer, strlen((char const *)tx_buffer));
 	}
 }
