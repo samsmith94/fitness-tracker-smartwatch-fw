@@ -47,7 +47,6 @@ SRC_FILES += \
 	$(SDK_ROOT)/components/ble/peer_manager/security_dispatcher.c \
 	$(SDK_ROOT)/components/ble/peer_manager/security_manager.c \
 	$(PROJ_DIR)/ble/ble_cus.c \
-	$(PROJ_DIR)/ble/ble_uart.c \
 	$(PROJ_DIR)/ble/led_service.c \
 	$(PROJ_DIR)/buzzer/rtttl.c \
 	$(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_rtt.c \

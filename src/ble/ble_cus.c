@@ -17,19 +17,12 @@ BLE_BAS_DEF(m_bas);                                                 /**< Structu
 APP_TIMER_DEF(m_battery_timer_id);                                  /**< Battery timer. */
 
 
-
-
-
-
 // YOUR_JOB: Use UUIDs for service(s) used in your application.
 static ble_uuid_t m_adv_uuids[] =                                               /**< Universally unique service identifiers. */
 {
     {BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE},
     {BLE_UUID_HEART_RATE_SERVICE, BLE_UUID_TYPE_BLE}
 };
-
-
-
 
 /******************************************************************************/
 
@@ -75,10 +68,6 @@ static void battery_level_meas_timeout_handler(void * p_context)
 }
 /******************************************************************************/
 
-
-
-
-
 /**@brief Callback function for asserts in the SoftDevice.
  *
  * @details This function will be called in case of an assert in the SoftDevice.
@@ -94,7 +83,6 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 {
     app_error_handler(DEAD_BEEF, line_num, p_file_name);
 }
-
 
 /**@brief Function for the Timer initialization.
  *
@@ -121,8 +109,6 @@ void timers_init(void)
                                 battery_level_meas_timeout_handler);
     APP_ERROR_CHECK(err_code);
 }
-
-
 
 /**@brief Function for the GAP initialization.
  *
@@ -157,7 +143,6 @@ void gap_params_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-
 /**@brief Function for initializing the GATT module.
  */
 void gatt_init(void)
@@ -177,8 +162,6 @@ static void nrf_qwr_error_handler(uint32_t nrf_error)
 {
     APP_ERROR_HANDLER(nrf_error);
 }
-
-
 
 /**@brief Function for handling the YYY Service events.
  * YOUR_JOB implement a service handler function depending on the event the service you are using can generate
@@ -205,8 +188,6 @@ static void on_yys_evt(ble_yy_service_t     * p_yy_service,
     }
 }
 */
-
-
 
 /**@brief Function for initializing services that will be used by the application.
  */
@@ -282,8 +263,6 @@ void services_init(void)
 
 }
 
-
-
 /**@brief Function for handling the Connection Parameters Module.
  *
  * @details This function will be called for all events in the Connection Parameters Module which
@@ -305,7 +284,6 @@ static void on_conn_params_evt(ble_conn_params_evt_t * p_evt)
     }
 }
 
-
 /**@brief Function for handling a Connection Parameters error.
  *
  * @param[in] nrf_error  Error code containing information about what went wrong.
@@ -314,8 +292,6 @@ static void conn_params_error_handler(uint32_t nrf_error)
 {
     APP_ERROR_HANDLER(nrf_error);
 }
-
-
 
 /**@brief Function for initializing the Connection Parameters module.
  */
@@ -351,7 +327,6 @@ void application_timers_start(void)
     APP_ERROR_CHECK(err_code);
 }
 
-
 /**@brief Function for putting the chip into sleep mode.
  *
  * @note This function will not return.
@@ -371,7 +346,6 @@ static void sleep_mode_enter(void)
     err_code = sd_power_system_off();
     APP_ERROR_CHECK(err_code);
 }
-
 
 /**@brief Function for handling advertising events.
  *
@@ -399,8 +373,6 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
             break;
     }
 }
-
-
 
 /**@brief Function for handling BLE events.
  *
@@ -461,8 +433,6 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
     }
 }
 
-
-
 /**@brief Function for initializing the BLE stack.
  *
  * @details Initializes the SoftDevice and the BLE event interrupt.
@@ -487,7 +457,6 @@ void ble_stack_init(void)
     // Register a handler for BLE events.
     NRF_SDH_BLE_OBSERVER(m_ble_observer, APP_BLE_OBSERVER_PRIO, ble_evt_handler, NULL);
 }
-
 
 /**@brief Function for handling events from the BSP module.
  *
@@ -528,7 +497,6 @@ static void bsp_event_handler(bsp_event_t event)
     }
 }
 
-
 /**@brief Function for initializing the Advertising functionality.
  */
 void advertising_init(void)
@@ -556,7 +524,6 @@ void advertising_init(void)
     ble_advertising_conn_cfg_tag_set(&m_advertising, APP_BLE_CONN_CFG_TAG);
 }
 
-
 /**@brief Function for initializing buttons and leds.
  *
  * @param[out] p_erase_bonds  Will be true if the clear bonding button was pressed to wake the application up.
@@ -569,7 +536,6 @@ void leds_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-
 /**@brief Function for initializing the nrf log module.
  */
 void log_init(void)
@@ -580,7 +546,6 @@ void log_init(void)
     NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
 
-
 /**@brief Function for initializing power management.
  */
 void power_management_init(void)
@@ -589,7 +554,6 @@ void power_management_init(void)
     err_code = nrf_pwr_mgmt_init();
     APP_ERROR_CHECK(err_code);
 }
-
 
 /**@brief Function for handling the idle state (main loop).
  *
@@ -603,7 +567,6 @@ void idle_state_handle(void)
     }
 }
 
-
 /**@brief Function for starting advertising.
  */
 void advertising_start(void)
@@ -612,11 +575,6 @@ void advertising_start(void)
 
     APP_ERROR_CHECK(err_code);
 }
-
-
-
-
-
 
 /******************************************************************************/
 

@@ -1,90 +1,73 @@
-/**
- * Copyright (c) 2014 - 2020, Nordic Semiconductor ASA
- *
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form, except as embedded into a Nordic
- *    Semiconductor ASA integrated circuit in a product or a software update for
- *    such product, must reproduce the above copyright notice, this list of
- *    conditions and the following disclaimer in the documentation and/or other
- *    materials provided with the distribution.
- *
- * 3. Neither the name of Nordic Semiconductor ASA nor the names of its
- *    contributors may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- * 4. This software, with or without modification, must only be used with a
- *    Nordic Semiconductor ASA integrated circuit.
- *
- * 5. Any software provided in binary form under this license must not be reverse
- *    engineered, decompiled, modified and/or disassembled.
- *
- * THIS SOFTWARE IS PROVIDED BY NORDIC SEMICONDUCTOR ASA "AS IS" AND ANY EXPRESS
- * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY, NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL NORDIC SEMICONDUCTOR ASA OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
- * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
- * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- */
-/** @file
- * @defgroup uart_example_main main.c
- * @{
- * @ingroup uart_example
- * @brief UART Example Application main file.
- *
- * This file contains the source code for a sample application using UART.
- *
- */
-
 //#define BLE_CUS_TEST
-//#define TEST_BLE_UART
-#ifdef TEST_BLE_UART
 
-#include "../ble/ble_uart.h"
-
-int main(void)
-{
-    bool erase_bonds;
-
-    // Initialize.
-    uart_init();
-    log_init();
-    timers_init();
-    buttons_leds_init(&erase_bonds);
-    power_management_init();
-    ble_stack_init();
-    gap_params_init();
-    gatt_init();
-    services_init();
-    advertising_init();
-    conn_params_init();
-
-    // Start execution.
-    printf("\r\nUART started.\r\n");
-    NRF_LOG_INFO("Debug logging for UART over RTT started.");
-    advertising_start();
-
-    // Enter main loop.
-    for (;;)
-    {
-        idle_state_handle();
-    }
-}
-#elif defined(BLE_CUS_TEST)
-
+#if defined(BLE_CUS_TEST)
 #include "../ble/ble_cus.h"
+#else
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <time.h>
+
+#include "app_uart.h"
+#include "app_error.h"
+#include "nrf_delay.h"
+#include "nrf.h"
+#include "bsp.h"
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
+#include "nrf_log_default_backends.h"
+#include "app_pwm.h"
+
+//#include "gesture/apds9960.h"
+#include "display/st7735.h"
+//#include "display/fonts.h"
+
+#include "gesture/apds9960.h"
+#include "rtc/calendar.h"
+
+#include "nrf_drv_timer.h"
+
+#include "test_apds9960.h"
+#include "nrf_drv_systick.h"
+
+#include "../buzzer/rtttl.h"
+
+#include "../imu/driver/lsm6dsox_tap.h"
+#include "../imu/driver/lsm6dsox_fifo_pedo.h"
+#include "../imu/driver/lsm6dsox_read_data.h"
+
+//#include "nrf_timer.h"
+#endif
+
+char *RTT_GetKey(void)
+{
+    static int key;
+
+    static char RTT_String[20] = {0};
+    static int rx_index = 0;
+
+    do
+    {
+        key = SEGGER_RTT_GetKey();
+        if (key > 0)
+        {
+            RTT_String[rx_index] = (char)key;
+            rx_index++;
+        }
+
+    } while ((key != '\n'));
+    if (key == '\n')
+    {
+        SEGGER_RTT_printf(0, "Received: %s", RTT_String);
+
+        memset(RTT_String, '\0', 20);
+        rx_index = 0;
+    }
+    return RTT_String;
+}
+
+#if defined(BLE_CUS_TEST)
 #define USER_LED BSP_BOARD_LED_1
 
 void led_write_handler(uint16_t conn_handle, ble_led_service_t *p_led_service, uint8_t led_state);
@@ -117,50 +100,11 @@ int main(void)
 
     advertising_start();
 
-    int key;
-
-    char RTT_String[20] = {0};
-    int rx_index = 0;
-
     // Enter main loop.
     for (;;)
     {
         idle_state_handle();
-
-        /*
-        if (rx_index == 0) {
-            memset(RTT_String, '0', 20);
-        }
-        key = SEGGER_RTT_GetKey();
-        if (key != '\n') {
-            SEGGER_RTT_printf(0, "Received: %c.", key);
-            RTT_String[rx_index++] = key;
-        } else {
-            rx_index = 0;
-            NRF_LOG_INFO("%s", RTT_String);
-            SEGGER_RTT_printf(0, "Received: %s.", RTT_String);
-        }
-        */
-
-        do
-        {
-            key = SEGGER_RTT_GetKey();
-            if (key > 0)
-            {
-                RTT_String[rx_index] = (char)key;
-                rx_index++;
-            }
-
-        } while ((key != '\n'));
-        if (key == '\n')
-        {
-            SEGGER_RTT_printf(0, "Received: %s", RTT_String);
-
-            battery_charge_level = atoi(RTT_String);
-
-            memset(RTT_String, '\0', 20);
-            rx_index = 0;
-        }
+        battery_charge_level = atoi(RTT_GetKey);
     }
 }
 
@@ -182,70 +126,7 @@ void led_write_handler(uint16_t conn_handle, ble_led_service_t *p_led_service, u
         NRF_LOG_INFO("Received LED OFF!");
     }
 }
-
 #else
-
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <time.h>
-
-#include "app_uart.h"
-#include "app_error.h"
-#include "nrf_delay.h"
-#include "nrf.h"
-#include "bsp.h"
-#include "nrf_log.h"
-#include "nrf_log_ctrl.h"
-#include "nrf_log_default_backends.h"
-#include "app_pwm.h"
-#if defined(UART_PRESENT)
-#include "nrf_uart.h"
-#endif
-#if defined(UARTE_PRESENT)
-#include "nrf_uarte.h"
-#endif
-
-//#include "gesture/apds9960.h"
-#include "display/st7735.h"
-//#include "display/fonts.h"
-
-#include "gesture/apds9960.h"
-#include "rtc/calendar.h"
-
-#include "nrf_drv_timer.h"
-
-#include "test_apds9960.h"
-#include "nrf_drv_systick.h"
-
-#include "../buzzer/rtttl.h"
-
-#include "../imu/driver/lsm6dsox_tap.h"
-#include "../imu/driver/lsm6dsox_fifo_pedo.h"
-#include "../imu/driver/lsm6dsox_read_data.h"
-
-//#include "nrf_timer.h"
-
-//#define ENABLE_LOOPBACK_TEST  /**< if defined, then this example will be a loopback test, which means that TX should be connected to RX to get data loopback. */
-
-#define MAX_TEST_DATA_BYTES (15U) /**< max number of test bytes to be used for tx and rx. */
-#define UART_TX_BUF_SIZE 256      /**< UART TX buffer size. */
-#define UART_RX_BUF_SIZE 256      /**< UART RX buffer size. */
-
-void uart_error_handle(app_uart_evt_t *p_event)
-{
-    if (p_event->evt_type == APP_UART_COMMUNICATION_ERROR)
-    {
-        APP_ERROR_HANDLER(p_event->data.error_communication);
-    }
-    else if (p_event->evt_type == APP_UART_FIFO_ERROR)
-    {
-        APP_ERROR_HANDLER(p_event->data.error_code);
-    }
-}
-
-/* When UART is used for communication with the host do not use flow control.*/
-#define UART_HWFC APP_UART_FLOW_CONTROL_DISABLED
 
 static inline void LOG_BINARY_DUMP(uint8_t byte)
 {
@@ -281,21 +162,8 @@ void init_display_pwm(void)
     app_pwm_enable(&PWM1);
 
     APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 1));
-
-    /*
-    for (int i = 0; i < 5000; i++) {
-        app_pwm_channel_duty_set(&PWM1, 0, i);
-        nrf_delay_ms(10);
-    }
-    */
 }
 
-/*
-void start_pwm()
-{
-
-}
-*/
 /******************************************************************************/
 
 typedef struct level
@@ -338,9 +206,6 @@ char step_count_buff[6] = "";
 
 void render_main_screen(void)
 {
-    //ST7735_write_string(80-25, 26, "1", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    //ST7735_write_string(80-25, 46, "MAIN", Font_7x10, ST7735_WHITE, ST7735_BLACK);
-
     draw_widget(bluetooth_widget, 10, 40 - (14 / 2));
 
     _time = nrf_cal_get_time();
@@ -365,13 +230,9 @@ char stopper_buff2[8] = "";
 
 void render_stopper_screen(void)
 {
-    //ST7735_write_string(80-25, 26, "2", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    //ST7735_write_string(80-25, 46, "STOPPER", Font_7x10, ST7735_WHITE, ST7735_BLACK);
-
     st7735_fill_screen(ST7735_BLACK);
     //draw_widget(clock_widget, 10, 40 - (14 / 2));
     draw_widget(clk_widget, 10, 40 - (14 / 2));
-    
 
     sprintf(stopper_buff, "%02d:%02d.", 0, 0, 0);
     ST7735_write_string(80 - 25, 26, stopper_buff, Font_11x18, ST7735_WHITE, ST7735_BLACK);
@@ -387,9 +248,6 @@ char timer_buff[8] = "";
 
 void render_timer_screen(void)
 {
-    //ST7735_write_string(80-25, 26, "3", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    //ST7735_write_string(80-25, 46, "TIMER", Font_7x10, ST7735_WHITE, ST7735_BLACK);
-
     st7735_fill_screen(ST7735_BLACK);
     draw_widget(tim_widget, 10, 40 - (14 / 2));
 
@@ -406,9 +264,6 @@ void render_timer_screen(void)
 
 void render_activity_screen(void)
 {
-    //ST7735_write_string(80-25, 26, "4", Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    //ST7735_write_string(80-25, 46, "ACTIVITY", Font_7x10, ST7735_WHITE, ST7735_BLACK);
-
     st7735_fill_screen(ST7735_BLACK);
 
     sprintf(stopper_buff, "%s", "Activity");
@@ -582,19 +437,6 @@ void start_keepalive_timer(nrfx_timer_event_handler_t timer_event_cb)
     nrf_drv_timer_enable(&TIMER_TEST);
 }
 
-/*
-int main()
-{
-    //Configure RAM retention. More RAM retentpin_in_power_down_gpio_inition means increased current consumption (see electrical specification in the Product Specification, power chapter)
-    configure_ram_retention();
-
-    pin_in_power_down_gpio_init();
-
-    while(1) {
-        ENTER_SYSTEM_ON_SLEEP_MODE()
-    }
-}
-*/
 /******************************************************************************/
 
 /**
@@ -611,29 +453,6 @@ int main(void)
 
     bsp_board_init(BSP_INIT_LEDS);
 
-    //bsp_board_leds_on();
-
-    /*
-    const app_uart_comm_params_t comm_params =
-    {
-        NRF_GPIO_PIN_MAP(0, 29),
-        NRF_GPIO_PIN_MAP(1, 13),
-        NRF_GPIO_PIN_MAP(0, 31),
-        NRF_GPIO_PIN_MAP(1, 12),
-        UART_HWFC,
-        false,
-        NRF_UART_BAUDRATE_115200
-    };
-
-    APP_UART_FIFO_INIT(&comm_params,
-                       UART_RX_BUF_SIZE,
-                       UART_TX_BUF_SIZE,
-                       uart_error_handle,
-                       APP_IRQ_PRIORITY_LOWEST,
-                       err_code);
-    APP_ERROR_CHECK(err_code);
-    */
-
     /* Display ****************************************************************/
 
     NRF_LOG_INFO("Hello World");
@@ -644,18 +463,13 @@ int main(void)
     st7735_fill_screen(ST7735_BLACK);
 
     //st7735_invert_colors(false);
-    //st7735_draw_image(0, 0, 40, 40, test_img_40x40);
-    //nrf_delay_ms(1000);
 
-
-    //draw_widget(heart_widget, 10, 40-(14/2)-25);
-    //draw_widget(battery_widget, 140, 5);
-    //draw_widget(clock_widget, 10, 40-(14/2)+25);
-    //draw_widget(steps_widget, 30, 40-(14/2));
-    //draw_widget(facebook_widget, 30, 40-(14/2));
+    draw_widget(heart_widget, 10, 40 - (14 / 2) - 25);
+    nrf_delay_ms(1000);
+    draw_widget(facebook_widget, 30, 40 - (14 / 2));
+    nrf_delay_ms(1000);
 
     /* Calendar ***************************************************************/
-
     calendar_init();
 
     /* Menu *******************************************************************/
@@ -678,59 +492,23 @@ int main(void)
     //new_gesture_init();
     //gpio_init();
 
-//#define TEST_GESTURE
-#ifdef TEST_GESTURE
-    i2c_init();
-    gesture_init();
-#else
     i2c_init();
     gesture_init();
 
-    lsm6dsox_tap_init();;
+    lsm6dsox_tap_init();
     //lsm6dsox_read_data_init();
 
-    buzzer_init();
-    test_rtttl_player();
-    lsm6dsox_fifo_pedo_init();;
-  
-#endif
+    lsm6dsox_fifo_pedo_init();
 
-    /* Timer ******************************************************************/
-    /*
-    uint32_t time_ms = 100; //Time(in miliseconds) between consecutive compare events.
-    uint32_t time_ticks;
-	err_code = NRF_SUCCESS;
-
-    //Configure TIMER_LED for generating simple light effect - leds on board will invert his state one after the other.
-    nrf_drv_timer_config_t timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
-	timer_cfg.frequency = NRF_TIMER_FREQ_62500Hz;
-    err_code = nrf_drv_timer_init(&TIMER_TEST, &timer_cfg, timer_event_handler);
-    APP_ERROR_CHECK(err_code);
-
-    time_ticks = nrf_drv_timer_ms_to_ticks(&TIMER_TEST, time_ms);
-
-    nrf_drv_timer_extended_compare(&TIMER_TEST, NRF_TIMER_CC_CHANNEL0, time_ticks, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
-
-    nrf_drv_timer_enable(&TIMER_TEST);
-    */
-
-    /* RTT key ****************************************************************/
-    int key;
-
-    /* apds9960 test **********************************************************/
-
-    //NRF_LOG_INFO("Hello world!");
-
-    //test_ENABLE();
-    //test_ATIME();
-    //test_AILTL();
-
-    /**************************************************************************/
-
+    /* Display ****************************************************************/
     init_display_pwm();
-    /**************************************************************************/
     st7735_sleep_out();
 
+    /* Buzzer *****************************************************************/
+    buzzer_init();
+    test_rtttl_player();
+
+    /* Systick ... ************************************************************/
     /* Init systick driver */
     /*nrf_drv_systick_init();
     nrfx_systick_state_t p_state;
@@ -742,35 +520,10 @@ int main(void)
         NRF_LOG_INFO("systick: %lu", p_state.time);
     }
     */
-
+    /**************************************************************************/
     while (true)
     {
-
         /*
-        st7735_sleep_in();
-        nrf_delay_ms(1000);
-        st7735_sleep_out();
-        nrf_delay_ms(1000);
-        */
-
-        /*
-        uint8_t status = get_device_status();
-        if (status & (1 << APDS9960_PVALID)) {
-            
-            //kiolvasni a proximiti adatot...
-            uint8_t proximity = get_proximity_data();
-
-            NRF_LOG_INFO("Proximity: %d", proximity);
-            //aztán handler: proximity_interrupt_event_handler(...);
-            //clear_proximity_interrupt();
-        }
-        */
-
-        /*
-        nrf_delay_ms(100);
-        NRF_LOG_INFO("Proximity: %d", get_proximity_data());
-        */
-
         gesture_received = apds9960_read_gesture();
         apds9960_gesture_to_uart(gesture_received);
 
@@ -790,51 +543,22 @@ int main(void)
             timer_event_handler_cnt = 0;
             start_keepalive_timer(timer_event_handler);
         }
-        else if (gesture_received == ADPS9960_INVALID) {
+        else if (gesture_received == ADPS9960_INVALID)
+        {
             lsm6dsox_read_steps();
             NRF_LOG_INFO("WHILE");
         }
         nrf_delay_ms(50);
-        
-        
-        
-        
-
-        /**********************************************************************/
-        /*
-        _time = nrf_cal_get_time();
-        sprintf(time_buff, "%02d:%02d", _time->tm_hour, _time->tm_min);
-        sprintf(date_buff, "%d/%d %s", _time->tm_mon + 1, _time->tm_mday, week_days[_time->tm_wday]);
-        ST7735_write_string(80-25, 26, time_buff, Font_11x18, ST7735_WHITE, ST7735_BLACK);
-        ST7735_write_string(80-25, 46, date_buff, Font_7x10, ST7735_WHITE, ST7735_BLACK);
-        //print_current_time();
-        //nrf_delay_ms(1000);
         */
 
         /**********************************************************************/
 
+        
+        NRF_LOG_INFO("Received from RTT Viewer: %s", RTT_GetKey());
         /*
         key = SEGGER_RTT_GetKey();
         if (key > 0) {
             NRF_LOG_INFO("Key: %c", key);
-        }
-        */
-
-        /**********************************************************************/
-        /*
-        printf("\r\nUART example started.\r\n");
-        uint8_t cr;
-        while (app_uart_get(&cr) != NRF_SUCCESS);
-        while (app_uart_put(cr) != NRF_SUCCESS);
-
-        if (cr == 'q' || cr == 'Q')
-        {
-            printf(" \r\nExit!\r\n");
-
-            while (true)
-            {
-                // Do nothing.
-            }
         }
         */
     }
