@@ -1,4 +1,4 @@
-//#define BLE_CUS_TEST
+#define BLE_CUS_TEST
 
 #if defined(BLE_CUS_TEST)
 #include "../ble/ble_cus.h"
@@ -40,12 +40,15 @@
 //#include "nrf_timer.h"
 #endif
 
-char *RTT_GetKey(void)
-{
-    static int key;
+char RTT_String[20] = {0};
 
-    static char RTT_String[20] = {0};
+bool RTT_GetKey(void)
+{
+    int key;
+
     static int rx_index = 0;
+
+    memset(RTT_String, '\0', 20);
 
     do
     {
@@ -61,10 +64,11 @@ char *RTT_GetKey(void)
     {
         SEGGER_RTT_printf(0, "Received: %s", RTT_String);
 
-        memset(RTT_String, '\0', 20);
+        
         rx_index = 0;
+        return true;
     }
-    return RTT_String;
+    return false;
 }
 
 #if defined(BLE_CUS_TEST)
@@ -104,7 +108,10 @@ int main(void)
     for (;;)
     {
         idle_state_handle();
-        battery_charge_level = atoi(RTT_GetKey);
+        if (RTT_GetKey()) {
+            battery_charge_level = atoi(RTT_String);
+        }
+        
     }
 }
 
@@ -553,14 +560,9 @@ int main(void)
 
         /**********************************************************************/
 
-        
-        NRF_LOG_INFO("Received from RTT Viewer: %s", RTT_GetKey());
-        /*
-        key = SEGGER_RTT_GetKey();
-        if (key > 0) {
-            NRF_LOG_INFO("Key: %c", key);
+        if (RTT_GetKey()) {
+            NRF_LOG_INFO("Received from RTT Viewer: %s", RTT_String);
         }
-        */
     }
 }
 
