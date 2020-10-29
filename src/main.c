@@ -220,6 +220,10 @@ void led_write_handler(uint16_t conn_handle, ble_led_service_t *p_led_service, u
 
 #include "../buzzer/rtttl.h"
 
+#include "../imu/driver/lsm6dsox_tap.h"
+#include "../imu/driver/lsm6dsox_fifo_pedo.h"
+#include "../imu/driver/lsm6dsox_read_data.h"
+
 //#include "nrf_timer.h"
 
 //#define ENABLE_LOOPBACK_TEST  /**< if defined, then this example will be a loopback test, which means that TX should be connected to RX to get data loopback. */
@@ -276,7 +280,7 @@ void init_display_pwm(void)
     APP_ERROR_CHECK(err_code);
     app_pwm_enable(&PWM1);
 
-    APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 5));
+    APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 1));
 
     /*
     for (int i = 0; i < 5000; i++) {
@@ -365,7 +369,9 @@ void render_stopper_screen(void)
     //ST7735_write_string(80-25, 46, "STOPPER", Font_7x10, ST7735_WHITE, ST7735_BLACK);
 
     st7735_fill_screen(ST7735_BLACK);
-    draw_widget(clock_widget, 10, 40 - (14 / 2));
+    //draw_widget(clock_widget, 10, 40 - (14 / 2));
+    draw_widget(clk_widget, 10, 40 - (14 / 2));
+    
 
     sprintf(stopper_buff, "%02d:%02d.", 0, 0, 0);
     ST7735_write_string(80 - 25, 26, stopper_buff, Font_11x18, ST7735_WHITE, ST7735_BLACK);
@@ -385,7 +391,7 @@ void render_timer_screen(void)
     //ST7735_write_string(80-25, 46, "TIMER", Font_7x10, ST7735_WHITE, ST7735_BLACK);
 
     st7735_fill_screen(ST7735_BLACK);
-    draw_widget(clock_widget, 10, 40 - (14 / 2));
+    draw_widget(tim_widget, 10, 40 - (14 / 2));
 
     sprintf(stopper_buff, "%02d", 10);
     ST7735_write_string(80 - 25, 26, stopper_buff, Font_11x18, ST7735_WHITE, ST7735_BLACK);
@@ -637,6 +643,11 @@ int main(void)
     nrf_delay_ms(20);
     st7735_fill_screen(ST7735_BLACK);
 
+    //st7735_invert_colors(false);
+    //st7735_draw_image(0, 0, 40, 40, test_img_40x40);
+    //nrf_delay_ms(1000);
+
+
     //draw_widget(heart_widget, 10, 40-(14/2)-25);
     //draw_widget(battery_widget, 140, 5);
     //draw_widget(clock_widget, 10, 40-(14/2)+25);
@@ -675,13 +686,13 @@ int main(void)
     i2c_init();
     gesture_init();
 
-    lsm6dsox_double_tap_init();
+    lsm6dsox_tap_init();;
     //lsm6dsox_read_data_init();
 
     buzzer_init();
     test_rtttl_player();
     lsm6dsox_fifo_pedo_init();;
-    
+  
 #endif
 
     /* Timer ******************************************************************/

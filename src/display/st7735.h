@@ -184,3 +184,11 @@ extern widget_t arrow_widget;
 
 
 extern widget_t bluetooth_widget;
+
+
+extern widget_t clk_widget;
+
+extern widget_t tim_widget;
+
+
+const extern  uint16_t test_img_40x40[][40];
