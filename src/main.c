@@ -218,6 +218,8 @@ void led_write_handler(uint16_t conn_handle, ble_led_service_t *p_led_service, u
 #include "test_apds9960.h"
 #include "nrf_drv_systick.h"
 
+#include "../buzzer/rtttl.h"
+
 //#include "nrf_timer.h"
 
 //#define ENABLE_LOOPBACK_TEST  /**< if defined, then this example will be a loopback test, which means that TX should be connected to RX to get data loopback. */
@@ -676,6 +678,8 @@ int main(void)
     lsm6dsox_double_tap_init();
     //lsm6dsox_read_data_init();
 
+    buzzer_init();
+    test_rtttl_player();
     lsm6dsox_fifo_pedo_init();;
     
 #endif
