@@ -1,4 +1,4 @@
-#define BLE_CUS_TEST
+//#define BLE_CUS_TEST
 
 #if defined(BLE_CUS_TEST)
 #include "../ble/ble_cus.h"
@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <time.h>
 
-#include "app_uart.h"
 #include "app_error.h"
 #include "nrf_delay.h"
 #include "nrf.h"
@@ -17,7 +16,6 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
-#include "app_pwm.h"
 
 //#include "gesture/apds9960.h"
 #include "display/st7735.h"
@@ -45,9 +43,7 @@ char RTT_String[20] = {0};
 bool RTT_GetKey(void)
 {
     int key;
-
     static int rx_index = 0;
-
     memset(RTT_String, '\0', 20);
 
     do
@@ -58,13 +54,10 @@ bool RTT_GetKey(void)
             RTT_String[rx_index] = (char)key;
             rx_index++;
         }
-
     } while ((key != '\n'));
     if (key == '\n')
     {
-        SEGGER_RTT_printf(0, "Received: %s", RTT_String);
-
-        
+        //SEGGER_RTT_printf(0, "Received: %s", RTT_String);
         rx_index = 0;
         return true;
     }
@@ -144,32 +137,6 @@ static inline void LOG_BINARY_DUMP(uint8_t byte)
 
 /******************************************************************************/
 
-APP_PWM_INSTANCE(PWM1, 1); // Create the instance "PWM1" using TIMER1.
-
-static volatile bool ready_flag; // A flag indicating PWM status.
-
-void pwm_ready_callback(uint32_t pwm_id) // PWM callback function
-{
-    ready_flag = true;
-}
-
-void init_display_pwm(void)
-{
-    ret_code_t err_code;
-
-    /* 2-channel PWM, 200Hz, output on DK LED pins. */
-    app_pwm_config_t pwm1_cfg = APP_PWM_DEFAULT_CONFIG_2CH(5000L, 26, 27);
-
-    /* Switch the polarity of the second channel. */
-    pwm1_cfg.pin_polarity[1] = APP_PWM_POLARITY_ACTIVE_HIGH;
-
-    /* Initialize and enable PWM. */
-    err_code = app_pwm_init(&PWM1, &pwm1_cfg, pwm_ready_callback);
-    APP_ERROR_CHECK(err_code);
-    app_pwm_enable(&PWM1);
-
-    APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 1));
-}
 
 /******************************************************************************/
 
@@ -409,7 +376,8 @@ void timer_event_handler(nrf_timer_event_t event_type, void *p_context)
         nrf_drv_timer_disable(&TIMER_TEST);
         NRF_LOG_INFO("Timer expired.");
         st7735_sleep_in();
-        APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 0));
+        //APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 0));
+        set_display_pwm(0);
         //TODO: háttérvilágítás lekapcsolása
 
         //i = 0;
@@ -446,6 +414,7 @@ void start_keepalive_timer(nrfx_timer_event_handler_t timer_event_cb)
 
 /******************************************************************************/
 
+
 /**
  * @brief Function for main application entry.
  */
@@ -462,7 +431,21 @@ int main(void)
 
     /* Display ****************************************************************/
 
-    NRF_LOG_INFO("Hello World");
+    //NRF_LOG_INFO("Hello World");
+
+    //http://patorjk.com/software/taag/#p=display&f=Doom&t=Samu%20Sung%20Band
+
+    //Doom
+
+    //http://www.network-science.de/ascii/
+    //smamslant:
+    char welcome[] = "\n\
+   ____                  ____                 ___               __\n\
+  / __/__ ___ _  __ __  / __/_ _____  ___ _  / _ )___ ____  ___/ /\n\
+ _\\ \\/ _ `/  ' \\/ // / _\\ \\/ // / _ \\/ _ `/ / _  / _ `/ _ \\/ _  / \n\
+/___/\\_,_/_/_/_/\\_,_/ /___/\\_,_/_//_/\\_, / /____/\\_,_/_//_/\\_,_/  \n\
+                                    /___/                         ";
+    NRF_LOG_INFO("%s", welcome);
 
     nrf_delay_ms(20);
     st7735_init();
@@ -530,7 +513,7 @@ int main(void)
     /**************************************************************************/
     while (true)
     {
-        /*
+        
         gesture_received = apds9960_read_gesture();
         apds9960_gesture_to_uart(gesture_received);
 
@@ -538,7 +521,8 @@ int main(void)
         {
             prev(&current_menu);
             st7735_sleep_out();
-            APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 5));
+            //APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 5));
+            set_display_pwm(5);
             timer_event_handler_cnt = 0;
             start_keepalive_timer(timer_event_handler);
         }
@@ -546,7 +530,8 @@ int main(void)
         {
             next(&current_menu);
             st7735_sleep_out();
-            APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 5));
+            //APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 5));
+            set_display_pwm(5);
             timer_event_handler_cnt = 0;
             start_keepalive_timer(timer_event_handler);
         }
@@ -556,13 +541,16 @@ int main(void)
             NRF_LOG_INFO("WHILE");
         }
         nrf_delay_ms(50);
-        */
+        
 
         /**********************************************************************/
 
+        /*
+        //ez egy kicsit szétcseszi a gesture-t....
         if (RTT_GetKey()) {
             NRF_LOG_INFO("Received from RTT Viewer: %s", RTT_String);
         }
+        */
     }
 }
 

@@ -13,6 +13,11 @@
 
 #include "fonts.h"
 
+#include "app_pwm.h"
+
+#include "nrf.h"
+
+
 #define ST7735_MADCTL_MY  0x80
 #define ST7735_MADCTL_MX  0x40
 #define ST7735_MADCTL_MV  0x20
@@ -119,6 +124,11 @@
 #define ST7735_SPI_SS_PIN       NRF_GPIO_PIN_MAP(0, 25)
 
 #define ST7735_SPI_MISO_PIN     NRF_GPIO_PIN_MAP(0, 26) //nincs használva
+
+
+void init_display_pwm(void);
+void pwm_ready_callback(uint32_t pwm_id);
+void set_display_pwm(uint16_t duty);
 
 void command_list(void);
 void set_addr_window(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1);
