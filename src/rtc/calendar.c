@@ -1,5 +1,8 @@
 #include "calendar.h"
 
+
+#include "display/st7735.h"
+
 #define __USE_XOPEN
 #define _GNU_SOURCE
 
@@ -104,7 +107,16 @@ char *nrf_cal_get_time_string(bool calibrated)
     strftime(cal_string, 80, "%x - %H:%M:%S", (calibrated ? nrf_cal_get_time_calibrated() : nrf_cal_get_time()));
     return cal_string;
 }
- 
+
+int display_keep_alive_cnt;
+bool display_active = false;
+
+void start_display_keepalive(void)
+{
+    display_active = true;
+    display_keep_alive_cnt = 0;
+}
+
 void CAL_RTC_IRQHandler(void)
 {
     if(CAL_RTC->EVENTS_COMPARE[0])
@@ -116,7 +128,19 @@ void CAL_RTC_IRQHandler(void)
         m_time += m_rtc_increment;
         if(cal_event_callback) cal_event_callback();
 
-        //NRF_LOG_INFO("CAL_RTC_IRQHandler()");
+        NRF_LOG_INFO("CAL_RTC_IRQHandler()");
+
+        if (display_active) {
+            display_keep_alive_cnt++;
+
+            if (display_keep_alive_cnt == 5) {
+                display_keep_alive_cnt = 0;
+                NRF_LOG_INFO("Display goinf to sleep...");
+                display_active = false;
+                st7735_sleep_in();
+                set_display_pwm(0);
+            }
+        }
 
     }
 }

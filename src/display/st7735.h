@@ -159,8 +159,6 @@ void line_draw(uint16_t x_0, uint16_t y_0, uint16_t x_1, int16_t y_1, uint32_t c
 
 /******************************************************************************/
 
-
-    
 void st7735_sleep_in(void);
 void st7735_sleep_out(void);
 
@@ -183,22 +181,12 @@ extern widget_t heart_widget;
 extern widget_t battery_widget;
 extern widget_t clock_widget;
 extern widget_t steps_widget;
-
 extern widget_t balkan_widget;
-
 extern widget_t facebook_widget;
-
 extern widget_t gmail_widget;
-
 extern widget_t arrow_widget;
-
-
 extern widget_t bluetooth_widget;
-
-
 extern widget_t clk_widget;
-
 extern widget_t tim_widget;
-
 
 const extern  uint16_t test_img_40x40[][40];

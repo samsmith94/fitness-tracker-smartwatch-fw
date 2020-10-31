@@ -1,8 +1,6 @@
 #ifndef BLE_CUS_H
 #define BLE_CUS_H
 
-
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>

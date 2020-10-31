@@ -18,7 +18,7 @@
 #include "nrf_log_default_backends.h"
 
 //#include "gesture/apds9960.h"
-#include "display/st7735.h"
+//#include "display/st7735.h"
 //#include "display/fonts.h"
 
 #include "gesture/apds9960.h"
@@ -35,34 +35,13 @@
 #include "../imu/driver/lsm6dsox_fifo_pedo.h"
 #include "../imu/driver/lsm6dsox_read_data.h"
 
+#include "display/menu.h"
+
 //#include "nrf_timer.h"
+
+#include "utilities/utility.h"
 #endif
 
-char RTT_String[20] = {0};
-
-bool RTT_GetKey(void)
-{
-    int key;
-    static int rx_index = 0;
-    memset(RTT_String, '\0', 20);
-
-    do
-    {
-        key = SEGGER_RTT_GetKey();
-        if (key > 0)
-        {
-            RTT_String[rx_index] = (char)key;
-            rx_index++;
-        }
-    } while ((key != '\n'));
-    if (key == '\n')
-    {
-        //SEGGER_RTT_printf(0, "Received: %s", RTT_String);
-        rx_index = 0;
-        return true;
-    }
-    return false;
-}
 
 #if defined(BLE_CUS_TEST)
 #define USER_LED BSP_BOARD_LED_1
@@ -128,124 +107,6 @@ void led_write_handler(uint16_t conn_handle, ble_led_service_t *p_led_service, u
 }
 #else
 
-static inline void LOG_BINARY_DUMP(uint8_t byte)
-{
-    char bin[18];
-    sprintf(bin, "[%c|%c|%c|%c|%c|%c|%c|%c]", (byte & 0x80 ? '1' : '0'), (byte & 0x40 ? '1' : '0'), (byte & 0x20 ? '1' : '0'), (byte & 0x10 ? '1' : '0'), (byte & 0x08 ? '1' : '0'), (byte & 0x04 ? '1' : '0'), (byte & 0x02 ? '1' : '0'), (byte & 0x01 ? '1' : '0'));
-    NRF_LOG_INFO("%s", bin);
-}
-
-/******************************************************************************/
-
-
-/******************************************************************************/
-
-typedef struct level
-{
-    struct level *next;
-    struct level *prev;
-    void (*render)(void);
-} level;
-
-void build_menu(struct level *current_node, struct level *prev_node, struct level *next_node, void (*render)(void))
-{
-    current_node->prev = prev_node;
-    current_node->next = next_node;
-    current_node->render = render;
-}
-
-void next(struct level **current_node)
-{
-    if ((*current_node)->next != 0)
-    {
-        (*current_node) = (*current_node)->next;
-        st7735_fill_screen(ST7735_BLACK);
-        (*current_node)->render();
-    }
-}
-
-void prev(struct level **current_node)
-{
-    if ((*current_node)->prev != 0)
-    {
-        (*current_node) = (*current_node)->prev;
-        st7735_fill_screen(ST7735_BLACK);
-        (*current_node)->render();
-        ;
-    }
-}
-
-char battery_buff[5] = "";
-char step_count_buff[6] = "";
-
-void render_main_screen(void)
-{
-    draw_widget(bluetooth_widget, 10, 40 - (14 / 2));
-
-    _time = nrf_cal_get_time();
-    sprintf(time_buff, "%02d:%02d", _time->tm_hour, _time->tm_min);
-    sprintf(date_buff, "%d/%d %s", _time->tm_mon + 1, _time->tm_mday, week_days[_time->tm_wday]);
-
-    ST7735_write_string(80 - 25, 26, time_buff, Font_11x18, ST7735_WHITE, ST7735_BLACK);
-    ST7735_write_string(80 - 25, 46, date_buff, Font_7x10, ST7735_COLOR565(128, 128, 128), ST7735_BLACK);
-
-    draw_widget(battery_widget, 135, 5);
-    //sprintf(battery_buff, "%d%%", 100);
-    sprintf(battery_buff, "%d", 100);
-    ST7735_write_string(130, 20, battery_buff, Font_7x10, ST7735_MAGENTA, ST7735_BLACK);
-
-    draw_widget(steps_widget, 135, 42);
-    sprintf(step_count_buff, "%d", 5231);
-    ST7735_write_string(130, 63, step_count_buff, Font_7x10, ST7735_YELLOW, ST7735_BLACK);
-}
-
-char stopper_buff[8] = "";
-char stopper_buff2[8] = "";
-
-void render_stopper_screen(void)
-{
-    st7735_fill_screen(ST7735_BLACK);
-    //draw_widget(clock_widget, 10, 40 - (14 / 2));
-    draw_widget(clk_widget, 10, 40 - (14 / 2));
-
-    sprintf(stopper_buff, "%02d:%02d.", 0, 0, 0);
-    ST7735_write_string(80 - 25, 26, stopper_buff, Font_11x18, ST7735_WHITE, ST7735_BLACK);
-
-    sprintf(stopper_buff2, "%01d", 0);
-    ST7735_write_string(80 - 25 + 65, 33, stopper_buff2, Font_7x10, ST7735_WHITE, ST7735_BLACK);
-
-    ST7735_write_string(80 - 25, 46, "Double tap", Font_7x10, ST7735_COLOR565(128, 128, 128), ST7735_BLACK);
-    ST7735_write_string(80 - 25, 56, "to start", Font_7x10, ST7735_COLOR565(128, 128, 128), ST7735_BLACK);
-}
-
-char timer_buff[8] = "";
-
-void render_timer_screen(void)
-{
-    st7735_fill_screen(ST7735_BLACK);
-    draw_widget(tim_widget, 10, 40 - (14 / 2));
-
-    sprintf(stopper_buff, "%02d", 10);
-    ST7735_write_string(80 - 25, 26, stopper_buff, Font_11x18, ST7735_WHITE, ST7735_BLACK);
-
-    sprintf(stopper_buff2, "%01d", 0);
-    ST7735_write_string(80 - 25 + 20, 33, " min", Font_7x10, ST7735_WHITE, ST7735_BLACK);
-
-    draw_widget(arrow_widget, 110, 40 - (14 / 2) - 8);
-
-    ST7735_write_string(80 - 25, 46, "Swipe to set", Font_7x10, ST7735_COLOR565(128, 128, 128), ST7735_BLACK);
-}
-
-void render_activity_screen(void)
-{
-    st7735_fill_screen(ST7735_BLACK);
-
-    sprintf(stopper_buff, "%s", "Activity");
-    ST7735_write_string(80 - 25, 26, stopper_buff, Font_11x18, ST7735_WHITE, ST7735_BLACK);
-
-    ST7735_write_string(80 - 25, 46, "Double tap", Font_7x10, ST7735_COLOR565(128, 128, 128), ST7735_BLACK);
-    ST7735_write_string(80 - 25, 56, "to start", Font_7x10, ST7735_COLOR565(128, 128, 128), ST7735_BLACK);
-}
 
 /* Sleep On *******************************************************************/
 
@@ -431,33 +292,20 @@ int main(void)
 
     /* Display ****************************************************************/
 
-    //NRF_LOG_INFO("Hello World");
+    print_ascii_art();
 
-    //http://patorjk.com/software/taag/#p=display&f=Doom&t=Samu%20Sung%20Band
 
-    //Doom
-
-    //http://www.network-science.de/ascii/
-    //smamslant:
-    char welcome[] = "\n\
-   ____                  ____                 ___               __\n\
-  / __/__ ___ _  __ __  / __/_ _____  ___ _  / _ )___ ____  ___/ /\n\
- _\\ \\/ _ `/  ' \\/ // / _\\ \\/ // / _ \\/ _ `/ / _  / _ `/ _ \\/ _  / \n\
-/___/\\_,_/_/_/_/\\_,_/ /___/\\_,_/_//_/\\_, / /____/\\_,_/_//_/\\_,_/  \n\
-                                    /___/                         ";
-    NRF_LOG_INFO("%s", welcome);
-
-    nrf_delay_ms(20);
     st7735_init();
     nrf_delay_ms(20);
     st7735_fill_screen(ST7735_BLACK);
 
     //st7735_invert_colors(false);
-
+/*
     draw_widget(heart_widget, 10, 40 - (14 / 2) - 25);
     nrf_delay_ms(1000);
     draw_widget(facebook_widget, 30, 40 - (14 / 2));
     nrf_delay_ms(1000);
+*/
 
     /* Calendar ***************************************************************/
     calendar_init();
@@ -524,7 +372,9 @@ int main(void)
             //APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 5));
             set_display_pwm(5);
             timer_event_handler_cnt = 0;
-            start_keepalive_timer(timer_event_handler);
+            //start_keepalive_timer(timer_event_handler);
+
+            start_display_keepalive();
         }
         else if (gesture_received == APDS9960_LEFT)
         {
@@ -533,16 +383,18 @@ int main(void)
             //APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 5));
             set_display_pwm(5);
             timer_event_handler_cnt = 0;
-            start_keepalive_timer(timer_event_handler);
+            //start_keepalive_timer(timer_event_handler);
+
+            start_display_keepalive();
         }
         else if (gesture_received == ADPS9960_INVALID)
         {
-            lsm6dsox_read_steps();
-            NRF_LOG_INFO("WHILE");
+            //lsm6dsox_read_steps();
+            //NRF_LOG_INFO("WHILE");
         }
         nrf_delay_ms(50);
         
-
+        
         /**********************************************************************/
 
         /*

@@ -1511,7 +1511,7 @@ apds9960_gesture_received_t apds9960_read_gesture(void)
 
     while (1)
     {
-        NRF_LOG_INFO("apds9960_read_gesture()...");
+        //NRF_LOG_INFO("apds9960_read_gesture()...");
         int up_down_diff = 0;
         int left_right_diff = 0;
         gesture_received = 0;

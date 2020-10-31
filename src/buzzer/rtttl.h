@@ -1,6 +1,6 @@
 
-#ifndef BUZZER_RTTTL_H
-#define BUZZER_RTTTL_H
+#ifndef RTTTL_H
+#define RTTTL_H
 
 #include <stdlib.h>
 #include <stdio.h>

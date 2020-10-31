@@ -49,6 +49,8 @@ SRC_FILES += \
 	$(PROJ_DIR)/ble/ble_cus.c \
 	$(PROJ_DIR)/ble/led_service.c \
 	$(PROJ_DIR)/buzzer/rtttl.c \
+	$(PROJ_DIR)/display/menu.c \
+	$(PROJ_DIR)/utilities/utility.c \
 	$(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_rtt.c \
 	$(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
 	$(SDK_ROOT)/components/libraries/log/src/nrf_log_default_backends.c \
@@ -265,6 +267,7 @@ INC_FOLDERS += \
 	$(PROJ_DIR)/fuel_gauge \
 	$(PROJ_DIR)/ble \
 	$(PROJ_DIR)/buzzer \
+	$(PROJ_DIR)/utilities \
 
 # Libraries common to all targets
 LIB_FILES += \

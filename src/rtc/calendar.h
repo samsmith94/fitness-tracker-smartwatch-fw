@@ -1,7 +1,6 @@
 #ifndef CALENDAR_H
 #define CALENDAR_H
 
-
 #include <stdint.h>
 #include <stdbool.h>
 #include "time.h"
@@ -12,6 +11,7 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
+
 
 // Change the following defines to change the RTC timer used or the interrupt priority
 #define CAL_RTC                 NRF_RTC0
@@ -56,5 +56,13 @@ void set_date_and_time(void);
 
 
 void calendar_init(void);
+
+
+
+
+extern int display_keep_alive_cnt;
+extern bool display_active;
+
+void start_display_keepalive(void);
 
 #endif

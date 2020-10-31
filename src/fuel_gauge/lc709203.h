@@ -1,3 +1,6 @@
+#ifndef LC709203_H
+#define LC709203_H
+
 #include "../driver/i2c.h"
 
 #define CRC_polynomial                              0x07
@@ -83,3 +86,5 @@ lc709203_get_status_bit();
 
 lc709203_get_number_of_the_parameter();
 */
+
+#endif
