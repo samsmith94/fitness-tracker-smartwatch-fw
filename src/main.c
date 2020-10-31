@@ -36,6 +36,8 @@
 #include "../imu/driver/lsm6dsox_fifo_pedo.h"
 #include "../imu/driver/lsm6dsox_read_data.h"
 
+#include "../imu/driver/lsm6dsox_multi_conf.h"
+
 #include "display/menu.h"
 
 //#include "nrf_timer.h"
@@ -342,10 +344,18 @@ int main(void)
     i2c_init();
     gesture_init();
 
-    lsm6dsox_tap_init();
+    nrf_delay_ms(100);
+    
+    //lsm6dsox_multi_conf_init();
+
+    lsm6dsox_fsm_init();
+
+    //lsm6dsox_tap_init();
     //lsm6dsox_read_data_init();
 
-    lsm6dsox_fifo_pedo_init();
+    //lsm6dsox_fifo_pedo_init();
+
+    
 
     /* Display ****************************************************************/
     init_display_pwm();

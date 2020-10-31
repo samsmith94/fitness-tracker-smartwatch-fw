@@ -26,6 +26,7 @@ SRC_FILES += \
 	$(PROJ_DIR)/imu/driver/lsm6dsox_fifo_pedo.c \
 	$(PROJ_DIR)/imu/driver/lsm6dsox_read_data.c \
 	$(PROJ_DIR)/imu/driver/lsm6dsox_tap.c \
+	$(PROJ_DIR)/imu/driver/lsm6dsox_multi_conf.c \
 	$(PROJ_DIR)/fuel_gauge/lc709203.c \
 	$(PROJ_DIR)/driver/i2c.c \
 	$(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_uart.c \
@@ -263,7 +264,7 @@ INC_FOLDERS += \
 	$(PROJ_DIR)/display \
 	$(PROJ_DIR)/rtc \
 	$(PROJ_DIR)/imu/driver \
-	$(PROJ_DIR)/imu \
+	$(PROJ_DIR)/imu/driver \
 	$(PROJ_DIR)/fuel_gauge \
 	$(PROJ_DIR)/ble \
 	$(PROJ_DIR)/buzzer \

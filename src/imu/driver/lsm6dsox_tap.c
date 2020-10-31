@@ -19,10 +19,9 @@ void lsm6dsox_tap_init(void)
 	platform_delay(10);
 
 	/* Check device ID */
-
 	lsm6dsox_device_id_get(&g_dev_ctx, &whoamI);
 	platform_delay(10);
-	NRF_LOG_INFO("%d", whoamI);
+	NRF_LOG_INFO("LSM6DSOX device id: %d", whoamI);
 	if (whoamI != LSM6DSOX_ID)
 		while (1)
 			;
