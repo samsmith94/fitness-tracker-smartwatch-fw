@@ -1,6 +1,14 @@
 #include "lsm6dsox_multi_conf.h"
 
 
+static axis3bit16_t data_raw_acceleration;
+static axis3bit16_t data_raw_angular_rate;
+static axis1bit16_t data_raw_temperature;
+static float acceleration_mg[3];
+static float angular_rate_mdps[3];
+static float temperature_degC;
+
+
 uint16_t steps;
 uint8_t mlc_out[8];
 
@@ -439,13 +447,13 @@ void lsm6dsox_multi_conf_init(void)
     platform_delay(10);
 
     /* Check device ID */
-    /*
+    
     lsm6dsox_device_id_get(&g_dev_ctx, &whoamI);
     platform_delay(10);
     NRF_LOG_INFO("LSM6DSOX device id: %d", whoamI);
     if (whoamI != LSM6DSOX_ID)
         while (1)
-            ;*/
+            ;
 
     /* Restore default configuration */
     lsm6dsox_reset_set(&g_dev_ctx, PROPERTY_ENABLE);
@@ -579,6 +587,7 @@ void lsm6dsox_multi_conf_init(void)
     {
     }
     */
+    
 }
 
 void lsm6dsox_multi_conf_irq_handler(void)
@@ -590,7 +599,7 @@ void lsm6dsox_multi_conf_irq_handler(void)
     lsm6dsox_all_sources_get(&g_dev_ctx, &status);
 
     //NRF_LOG_INFO("AFTER lsm6dsox_all_sources_get");
-    if (status.wake_up)
+    /*if (status.wake_up)
     {
         sprintf((char *)tx_buffer, "Wake-Up event on ");
         if (status.wake_up_x)
@@ -602,6 +611,7 @@ void lsm6dsox_multi_conf_irq_handler(void)
         strcat((char *)tx_buffer, " direction\r\n");
         tx_com(tx_buffer, strlen((char const *)tx_buffer));
     }
+    */
     if (status.step_detector)
     {
         /* Read steps */
@@ -648,11 +658,13 @@ void lsm6dsox_multi_conf_irq_handler(void)
         strcat((char *)tx_buffer, " sign\r\n");
         tx_com(tx_buffer, strlen((char const *)tx_buffer));
     }
+    /*
     if (status.tilt)
     {
         sprintf((char *)tx_buffer, "TILT Detected\r\n");
         tx_com(tx_buffer, strlen((char const *)tx_buffer));
     }
+    
     if (status.six_d)
     {
         sprintf((char *)tx_buffer, "6D Or. switched to ");
@@ -676,6 +688,7 @@ void lsm6dsox_multi_conf_irq_handler(void)
         sprintf((char *)tx_buffer, "Free Fall Detected\r\n");
         tx_com(tx_buffer, strlen((char const *)tx_buffer));
     }
+    */
 }
 
 /******************************************************************************/
