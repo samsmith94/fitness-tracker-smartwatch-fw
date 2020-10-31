@@ -19,6 +19,7 @@ bool RTT_GetKey(void)
     } while ((key != '\n'));
     if (key == '\n')
     {
+        RTT_String[rx_index-1] = '\0';
         //SEGGER_RTT_printf(0, "Received: %s", RTT_String);
         rx_index = 0;
         return true;

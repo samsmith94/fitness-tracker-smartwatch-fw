@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
+#include <string.h>
 
 #include "app_error.h"
 #include "nrf_delay.h"
@@ -41,7 +42,6 @@
 
 #include "utilities/utility.h"
 #endif
-
 
 #if defined(BLE_CUS_TEST)
 #define USER_LED BSP_BOARD_LED_1
@@ -80,10 +80,10 @@ int main(void)
     for (;;)
     {
         idle_state_handle();
-        if (RTT_GetKey()) {
+        if (RTT_GetKey())
+        {
             battery_charge_level = atoi(RTT_String);
         }
-        
     }
 }
 
@@ -106,7 +106,6 @@ void led_write_handler(uint16_t conn_handle, ble_led_service_t *p_led_service, u
     }
 }
 #else
-
 
 /* Sleep On *******************************************************************/
 
@@ -158,6 +157,15 @@ static void pin_in_power_down_gpio_init(void)
 }
 
 /* Stopper/counter ************************************************************/
+
+typedef enum
+{
+    STOPPER_MODE = 0,
+    TIMER_MODE
+} stopper_timer_mode_t;
+
+stopper_timer_mode_t stopper_timer_mode;
+
 typedef struct
 {
     uint8_t min;
@@ -165,7 +173,6 @@ typedef struct
     uint8_t tenth_of_sec;
 } stopper_counter_t;
 
-stopper_counter_t stopper;
 stopper_counter_t timer;
 
 /* Timer **********************************************************************/
@@ -200,57 +207,61 @@ void timer_event_handler(nrf_timer_event_t event_type, void *p_context)
         //bsp_board_led_invert(led_to_invert);
 
         //time_counter++;
+        if (stopper_timer_mode == TIMER_MODE)
+        {
+            tenth_of_seconds--;
+            timer.min = tenth_of_seconds / (60 * 10);
+            timer.sec = (tenth_of_seconds - (timer.min * 60 * 10)) / 10;
+            timer.tenth_of_sec = tenth_of_seconds - (timer.min * 60 * 10) - (timer.sec * 10);
+            NRF_LOG_INFO("Timer: %02d:%02d.%01d\r\n", timer.min, timer.sec, timer.tenth_of_sec);
+            if (tenth_of_seconds == 0)
+            {
+                nrf_drv_timer_disable(&TIMER_TEST);
+            }
+        }
+        else if (stopper_timer_mode == STOPPER_MODE)
+        {
+            timer.tenth_of_sec++;
+            if (timer.tenth_of_sec == 10)
+            {
+                timer.tenth_of_sec = 0;
+                timer.sec++;
+                if (timer.sec == 59)
+                {
+                    timer.sec = 0;
+                    timer.min++;
+                }
+            }
+            NRF_LOG_INFO("Stopper: %02d:%02d.%02d\r\n", timer.min, timer.sec, timer.tenth_of_sec);
+        }
 
-        /*
-			tenth_of_seconds--;
-			timer.min = tenth_of_seconds / (60 * 10);
-			timer.sec = (tenth_of_seconds - (timer.min * 60 * 10)) / 10;
-			timer.tenth_of_sec = tenth_of_seconds - (timer.min * 60 * 10) - (timer.sec * 10);
-			NRF_LOG_INFO("Timer: %02d:%02d.%01d\r\n", timer.min, timer.sec, timer.tenth_of_sec);
-			if (tenth_of_seconds == 0) {
-				nrf_drv_timer_disable(&TIMER_TEST);
-			}
-            */
-
-        /*
-			timer.tenth_of_sec++;
-			if (timer.tenth_of_sec == 10) {
-				timer.tenth_of_sec = 0;
-				timer.sec++;
-				if (timer.sec == 59) {
-					timer.sec = 0;
-					timer.min++;
-				}
-			}
-			NRF_LOG_INFO("Stopper: %02d:%02d.%02d\r\n", timer.min, timer.sec, timer.tenth_of_sec);
-			*/
         break;
 
     default:
         //Do nothing.
         break;
     }
-
+    /*
     if (timer_event_handler_cnt == expiry_time)
     {
         timer_expired = true;
         nrf_drv_timer_disable(&TIMER_TEST);
         NRF_LOG_INFO("Timer expired.");
         st7735_sleep_in();
-        //APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 0));
         set_display_pwm(0);
-        //TODO: háttérvilágítás lekapcsolása
-
-        //i = 0;
 
         timer_event_handler_cnt = 0;
         //ENTER_SYSTEM_ON_SLEEP_MODE();
         //nrf_pwr_mgmt_run();
     }
+    */
 }
 
-void start_keepalive_timer(nrfx_timer_event_handler_t timer_event_cb)
+void start_stopper_timer(nrfx_timer_event_handler_t timer_event_cb, stopper_timer_mode_t mode, uint8_t minutes)
 {
+    stopper_timer_mode = mode;
+    tenth_of_seconds = 10 * 60 * minutes;
+
     nrf_drv_timer_disable(&TIMER_TEST);
     nrf_drv_timer_uninit(&TIMER_TEST);
     uint32_t err_code;
@@ -275,7 +286,6 @@ void start_keepalive_timer(nrfx_timer_event_handler_t timer_event_cb)
 
 /******************************************************************************/
 
-
 /**
  * @brief Function for main application entry.
  */
@@ -294,13 +304,12 @@ int main(void)
 
     print_ascii_art();
 
-
     st7735_init();
     nrf_delay_ms(20);
     st7735_fill_screen(ST7735_BLACK);
 
     //st7735_invert_colors(false);
-/*
+    /*
     draw_widget(heart_widget, 10, 40 - (14 / 2) - 25);
     nrf_delay_ms(1000);
     draw_widget(facebook_widget, 30, 40 - (14 / 2));
@@ -346,6 +355,8 @@ int main(void)
     buzzer_init();
     test_rtttl_player();
 
+    button_1_init();
+
     /* Systick ... ************************************************************/
     /* Init systick driver */
     /*nrf_drv_systick_init();
@@ -361,7 +372,7 @@ int main(void)
     /**************************************************************************/
     while (true)
     {
-        
+        /*
         gesture_received = apds9960_read_gesture();
         apds9960_gesture_to_uart(gesture_received);
 
@@ -393,16 +404,28 @@ int main(void)
             //NRF_LOG_INFO("WHILE");
         }
         nrf_delay_ms(50);
-        
-        
+        */
+
         /**********************************************************************/
 
-        /*
         //ez egy kicsit szétcseszi a gesture-t....
-        if (RTT_GetKey()) {
-            NRF_LOG_INFO("Received from RTT Viewer: %s", RTT_String);
+        if (RTT_GetKey())
+        {
+            NRF_LOG_INFO("Received from RTT Viewer: %s, %d", RTT_String, strlen(RTT_String));
+            if (strcmp(RTT_String, "TIMER") == 0)
+            {
+                //NRF_LOG_INFO("Starting timer...");
+                start_stopper_timer(timer_event_handler, TIMER_MODE, 2);
+            }
+            else if (strcmp(RTT_String, "STOPPER") == 0)
+            {
+                start_stopper_timer(timer_event_handler, STOPPER_MODE, 0);
+            }
+            else
+            {
+                NRF_LOG_INFO("Other...");
+            }
         }
-        */
     }
 }
 

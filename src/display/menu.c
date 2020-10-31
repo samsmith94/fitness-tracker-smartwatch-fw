@@ -3,6 +3,51 @@
 
 #include "menu.h"
 
+#include <stdbool.h>
+#include <stdint.h>
+#include "boards.h"
+#include "bsp.h"
+#include "app_timer.h"
+#include "nordic_common.h"
+#include "nrf_error.h"
+
+
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
+#include "nrf_log_default_backends.h"
+
+#define BUTTON_1 NRF_GPIO_PIN_MAP(0, 13)
+
+void button_1_handler(void)
+{
+    NRF_LOG_INFO("BUTTON_1 pressed");
+}
+
+
+void button_1_init(void)
+{
+	ret_code_t err_code;
+
+	if (!nrf_drv_gpiote_is_init())
+	{
+		err_code = nrf_drv_gpiote_init();
+		APP_ERROR_CHECK(err_code);
+	}
+
+	nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_HITOLO(true);
+    in_config.pull = NRF_GPIO_PIN_PULLUP;
+
+	err_code = nrf_drv_gpiote_in_init(BUTTON_1, &in_config, button_1_handler);
+	APP_ERROR_CHECK(err_code);
+
+	nrf_drv_gpiote_in_event_enable(BUTTON_1, true);
+}
+
+
+active_screen_t active_screen = MAIN_SCREEN;
+
+
+
 void build_menu(struct level *current_node, struct level *prev_node, struct level *next_node, void (*render)(void))
 {
     current_node->prev = prev_node;
@@ -45,6 +90,8 @@ static char timer_buff[8] = "";
 
 void render_main_screen(void)
 {
+    active_screen = MAIN_SCREEN;
+
     draw_widget(bluetooth_widget, 10, 40 - (14 / 2));
 
     _time = nrf_cal_get_time();
@@ -67,6 +114,8 @@ void render_main_screen(void)
 
 void render_stopper_screen(void)
 {
+    active_screen = STOPPER_SCREEN;
+
     st7735_fill_screen(ST7735_BLACK);
     //draw_widget(clock_widget, 10, 40 - (14 / 2));
     draw_widget(clk_widget, 10, 40 - (14 / 2));
@@ -83,6 +132,8 @@ void render_stopper_screen(void)
 
 void render_timer_screen(void)
 {
+    active_screen = TIMER_SCREEN;
+
     st7735_fill_screen(ST7735_BLACK);
     draw_widget(tim_widget, 10, 40 - (14 / 2));
 
@@ -99,6 +150,8 @@ void render_timer_screen(void)
 
 void render_activity_screen(void)
 {
+    active_screen = ACTIVITY_SCREEN;
+
     st7735_fill_screen(ST7735_BLACK);
 
     sprintf(stopper_buff, "%s", "Activity");

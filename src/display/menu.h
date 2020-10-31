@@ -4,6 +4,18 @@
 #include "st7735.h"
 #include "../rtc/calendar.h"
 
+#include "nrf.h"
+#include "nrf_drv_gpiote.h"
+
+typedef enum {
+    MAIN_SCREEN,
+    STOPPER_SCREEN,
+    TIMER_SCREEN,
+    ACTIVITY_SCREEN
+} active_screen_t;
+
+active_screen_t active_screen;
+
 typedef struct level
 {
     struct level *next;
@@ -18,5 +30,12 @@ void render_main_screen(void);
 void render_stopper_screen(void);
 void render_timer_screen(void);
 void render_activity_screen(void);
+
+
+
+void button_1_init(void);
+void button_1_handler(void);
+
+
 
 #endif
