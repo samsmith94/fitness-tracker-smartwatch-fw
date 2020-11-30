@@ -346,9 +346,9 @@ int main(void)
 
     nrf_delay_ms(100);
     
-    lsm6dsox_multi_conf_init();
+    //lsm6dsox_multi_conf_init();
 
-    //lsm6dsox_fsm_init();
+    lsm6dsox_fsm_init();
 
     //lsm6dsox_tap_init();
     //lsm6dsox_read_data_init();
@@ -362,8 +362,10 @@ int main(void)
     st7735_sleep_out();
 
     /* Buzzer *****************************************************************/
+    /*
     buzzer_init();
     test_rtttl_player();
+    */
 
     button_1_init();
 

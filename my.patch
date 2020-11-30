@@ -1,0 +1,125 @@
+diff --git a/src/imu/driver/lsm6dsox_multi_conf.c b/src/imu/driver/lsm6dsox_multi_conf.c
+index 2524554..f51d1d5 100644
+--- a/src/imu/driver/lsm6dsox_multi_conf.c
++++ b/src/imu/driver/lsm6dsox_multi_conf.c
+@@ -1,14 +1,6 @@
+ #include "lsm6dsox_multi_conf.h"
+ 
+ 
+-static axis3bit16_t data_raw_acceleration;
+-static axis3bit16_t data_raw_angular_rate;
+-static axis1bit16_t data_raw_temperature;
+-static float acceleration_mg[3];
+-static float angular_rate_mdps[3];
+-static float temperature_degC;
+-
+-
+ uint16_t steps;
+ uint8_t mlc_out[8];
+ 
+@@ -447,13 +439,13 @@ void lsm6dsox_multi_conf_init(void)
+     platform_delay(10);
+ 
+     /* Check device ID */
+-    
++    /*
+     lsm6dsox_device_id_get(&g_dev_ctx, &whoamI);
+     platform_delay(10);
+     NRF_LOG_INFO("LSM6DSOX device id: %d", whoamI);
+     if (whoamI != LSM6DSOX_ID)
+         while (1)
+-            ;
++            ;*/
+ 
+     /* Restore default configuration */
+     lsm6dsox_reset_set(&g_dev_ctx, PROPERTY_ENABLE);
+@@ -587,7 +579,6 @@ void lsm6dsox_multi_conf_init(void)
+     {
+     }
+     */
+-    
+ }
+ 
+ void lsm6dsox_multi_conf_irq_handler(void)
+@@ -599,7 +590,7 @@ void lsm6dsox_multi_conf_irq_handler(void)
+     lsm6dsox_all_sources_get(&g_dev_ctx, &status);
+ 
+     //NRF_LOG_INFO("AFTER lsm6dsox_all_sources_get");
+-    /*if (status.wake_up)
++    if (status.wake_up)
+     {
+         sprintf((char *)tx_buffer, "Wake-Up event on ");
+         if (status.wake_up_x)
+@@ -611,7 +602,6 @@ void lsm6dsox_multi_conf_irq_handler(void)
+         strcat((char *)tx_buffer, " direction\r\n");
+         tx_com(tx_buffer, strlen((char const *)tx_buffer));
+     }
+-    */
+     if (status.step_detector)
+     {
+         /* Read steps */
+@@ -658,13 +648,11 @@ void lsm6dsox_multi_conf_irq_handler(void)
+         strcat((char *)tx_buffer, " sign\r\n");
+         tx_com(tx_buffer, strlen((char const *)tx_buffer));
+     }
+-    /*
+     if (status.tilt)
+     {
+         sprintf((char *)tx_buffer, "TILT Detected\r\n");
+         tx_com(tx_buffer, strlen((char const *)tx_buffer));
+     }
+-    
+     if (status.six_d)
+     {
+         sprintf((char *)tx_buffer, "6D Or. switched to ");
+@@ -688,7 +676,6 @@ void lsm6dsox_multi_conf_irq_handler(void)
+         sprintf((char *)tx_buffer, "Free Fall Detected\r\n");
+         tx_com(tx_buffer, strlen((char const *)tx_buffer));
+     }
+-    */
+ }
+ 
+ /******************************************************************************/
+diff --git a/src/imu/driver/platform.c b/src/imu/driver/platform.c
+index 083ea96..49f869f 100644
+--- a/src/imu/driver/platform.c
++++ b/src/imu/driver/platform.c
+@@ -248,7 +248,9 @@ static void int2_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t act
+ 	
+ 	//lsm6dsox_double_tap_irq_handler();
+ 
+-	lsm6dsox_multi_conf_irq_handler();
++	//lsm6dsox_multi_conf_irq_handler();
++
++	//lsm6dsox_fsm_irq_handler();
+ 
+ 
+ 	//lsm6dsox_read_data_init_irq_handler();
+@@ -275,9 +277,9 @@ static void int2_pin_init(void)
+ 
+ static void int1_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
+ {
+-	//NRF_LOG_INFO("int1_pin_handler() called.");
++	NRF_LOG_INFO("int1_pin_handler() called.");
+ 
+-	//lsm6dsox_fsm_irq_handler();
++	lsm6dsox_fsm_irq_handler();
+ }
+ 
+ static void int1_pin_init(void)
+diff --git a/src/main.c b/src/main.c
+index decd464..83a6cd3 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -346,9 +346,9 @@ int main(void)
+ 
+     nrf_delay_ms(100);
+     
+-    lsm6dsox_multi_conf_init();
++    //lsm6dsox_multi_conf_init();
+ 
+-    //lsm6dsox_fsm_init();
++    lsm6dsox_fsm_init();
+ 
+     //lsm6dsox_tap_init();
+     //lsm6dsox_read_data_init();

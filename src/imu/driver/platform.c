@@ -275,9 +275,9 @@ static void int2_pin_init(void)
 
 static void int1_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
-	//NRF_LOG_INFO("int1_pin_handler() called.");
+	NRF_LOG_INFO("int1_pin_handler() called.");
 
-	//lsm6dsox_fsm_irq_handler();
+	lsm6dsox_fsm_irq_handler();
 }
 
 static void int1_pin_init(void)
