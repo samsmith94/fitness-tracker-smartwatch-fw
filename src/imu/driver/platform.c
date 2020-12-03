@@ -277,7 +277,8 @@ static void int1_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t act
 {
 	NRF_LOG_INFO("int1_pin_handler() called.");
 
-	lsm6dsox_fsm_irq_handler();
+	fsm_multiconf_iqr_handler();
+	//lsm6dsox_fsm_irq_handler();
 	//lsm6dsox_multi_conf_irq_handler();
 }
 

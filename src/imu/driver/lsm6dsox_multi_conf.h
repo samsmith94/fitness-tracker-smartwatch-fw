@@ -12,4 +12,9 @@ extern const ucf_line_t lsm6dsox_yoga_pose_recognition[];
 
 void lsm6dsox_fsm_init(void);
 void lsm6dsox_fsm_irq_handler(void);
+
+
+void fsm_multiconf_iqr_handler(void);
+void fsm_multiconf_init(void);
+
 #endif
