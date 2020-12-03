@@ -871,29 +871,21 @@ void lsm6dsox_fsm_irq_handler(void)
 
 void fsm_multiconf_iqr_handler(void)
 {
-        lsm6dsox_all_sources_t status;
+    lsm6dsox_all_sources_t status;
 
     static int calltime = 0;
 
-      //NRF_LOG_INFO("FSM WHILE");
     /* Read interrupt source registers in polling mode (no int) */
     lsm6dsox_all_sources_get(&g_dev_ctx, &status);
-
-
-
-    /*********************************/
-
-
     if(status.fsm1) {
-
-        sprintf((char*)tx_buffer, "wrist tilt detected, %d\r\n", calltime++);
+        sprintf((char*)tx_buffer, "wrist tilt detected, %d", calltime++);
         tx_com(tx_buffer, strlen((char const*)tx_buffer));
     }
     if (status.step_detector)
     {
         /* Read steps */
         lsm6dsox_number_of_steps_get(&g_dev_ctx, (uint8_t *)&steps);
-        sprintf((char *)tx_buffer, "steps :%d\r\n", steps);
+        sprintf((char *)tx_buffer, "steps :%d", steps);
         tx_com(tx_buffer, strlen((char const *)tx_buffer));
     }
     if (status.double_tap)
@@ -909,7 +901,7 @@ void fsm_multiconf_iqr_handler(void)
             strcat((char *)tx_buffer, " negative");
         else
             strcat((char *)tx_buffer, " positive");
-        strcat((char *)tx_buffer, " sign\r\n");
+        strcat((char *)tx_buffer, " sign");
         tx_com(tx_buffer, strlen((char const *)tx_buffer));
     }
     if (status.single_tap)
@@ -925,7 +917,7 @@ void fsm_multiconf_iqr_handler(void)
             strcat((char *)tx_buffer, " negative");
         else
             strcat((char *)tx_buffer, " positive");
-        strcat((char *)tx_buffer, " sign\r\n");
+        strcat((char *)tx_buffer, " sign");
         tx_com(tx_buffer, strlen((char const *)tx_buffer));
     }
 }

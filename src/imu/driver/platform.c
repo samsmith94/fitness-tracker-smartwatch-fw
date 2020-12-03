@@ -233,7 +233,7 @@ void platform_init(void)
 	ret_code_t err_code;
 
 	int1_pin_init();
-	int2_pin_init();
+	//int2_pin_init();
 
 #if defined(LSM6DSOX_USE_I2C)
 	imu_i2c_init(imu_m_twi, imu_twi_config);
@@ -275,7 +275,7 @@ static void int2_pin_init(void)
 
 static void int1_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
-	NRF_LOG_INFO("int1_pin_handler() called.");
+	//NRF_LOG_INFO("int1_pin_handler() called.");
 
 	fsm_multiconf_iqr_handler();
 	//lsm6dsox_fsm_irq_handler();
