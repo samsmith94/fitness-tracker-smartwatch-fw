@@ -18,9 +18,13 @@
 
 #define BUTTON_1 NRF_GPIO_PIN_MAP(0, 13)
 
+volatile uint32_t gesture_timer_cnt = 0;
+volatile uint32_t button1_pressed_cnt = 0;
+
 void button_1_handler(void)
 {
-    NRF_LOG_INFO("BUTTON_1 pressed");
+    NRF_LOG_INFO("BUTTON_1 pressed, %d", gesture_timer_cnt);
+    button1_pressed_cnt = gesture_timer_cnt;
 }
 
 

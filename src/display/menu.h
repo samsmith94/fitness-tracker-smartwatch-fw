@@ -14,6 +14,10 @@ typedef enum {
     ACTIVITY_SCREEN
 } active_screen_t;
 
+
+extern volatile uint32_t gesture_timer_cnt;
+extern volatile uint32_t button1_pressed_cnt;
+
 active_screen_t active_screen;
 
 typedef struct level

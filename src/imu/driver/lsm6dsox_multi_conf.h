@@ -14,7 +14,7 @@ void lsm6dsox_fsm_init(void);
 void lsm6dsox_fsm_irq_handler(void);
 
 
-void fsm_multiconf_iqr_handler(void);
-void fsm_multiconf_init(void);
+void lsm6dsox_fsm_multiconf_iqr_handler(void);
+void lsm6dsox_fsm_multiconf_init(void);
 
 #endif

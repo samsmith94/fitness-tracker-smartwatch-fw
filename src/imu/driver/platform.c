@@ -246,13 +246,6 @@ static void int2_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t act
 {
 	NRF_LOG_INFO("int2_pin_handler() called.");
 	
-	//lsm6dsox_double_tap_irq_handler();
-
-	
-
-
-	//lsm6dsox_read_data_init_irq_handler();
-	//lsm6dsox_fifo_pedo_irq_handler();
 }
 
 static void int2_pin_init(void)
@@ -277,9 +270,8 @@ static void int1_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t act
 {
 	//NRF_LOG_INFO("int1_pin_handler() called.");
 
-	fsm_multiconf_iqr_handler();
-	//lsm6dsox_fsm_irq_handler();
-	//lsm6dsox_multi_conf_irq_handler();
+	lsm6dsox_fsm_multiconf_iqr_handler();
+
 }
 
 static void int1_pin_init(void)

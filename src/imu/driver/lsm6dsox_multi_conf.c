@@ -1,5 +1,6 @@
 #include "lsm6dsox_multi_conf.h"
 
+#include "../display/menu.h"
 
 static axis3bit16_t data_raw_acceleration;
 static axis3bit16_t data_raw_angular_rate;
@@ -869,7 +870,7 @@ void lsm6dsox_fsm_irq_handler(void)
     }
 }
 
-void fsm_multiconf_iqr_handler(void)
+void lsm6dsox_fsm_multiconf_iqr_handler(void)
 {
     lsm6dsox_all_sources_t status;
 
@@ -906,6 +907,8 @@ void fsm_multiconf_iqr_handler(void)
     }
     if (status.single_tap)
     {
+        button1_pressed_cnt = gesture_timer_cnt;
+
         sprintf((char *)tx_buffer, "S-Tap: ");
         if (status.tap_x)
             strcat((char *)tx_buffer, "x-axis");
@@ -919,10 +922,12 @@ void fsm_multiconf_iqr_handler(void)
             strcat((char *)tx_buffer, " positive");
         strcat((char *)tx_buffer, " sign");
         tx_com(tx_buffer, strlen((char const *)tx_buffer));
+
+        NRF_LOG_INFO("Tap timestamp: %d", button1_pressed_cnt);
     }
 }
 
-void fsm_multiconf_init(void)
+void lsm6dsox_fsm_multiconf_init(void)
 {
 /* Variable declaration */
     lsm6dsox_pin_int1_route_t pin_int1_route;

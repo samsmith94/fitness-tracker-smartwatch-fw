@@ -187,28 +187,20 @@ bool timer_expired = false;
 5000/100 = 50
 */
 
-uint32_t timer_event_handler_cnt = 0;
-
 int tenth_of_seconds = 10 * 60; //1 perc
 void timer_event_handler(nrf_timer_event_t event_type, void *p_context)
 {
-
-    /*
-	static uint32_t i;
-    uint32_t led_to_invert = ((i++) % LEDS_NUMBER);
-    */
-
-    timer_event_handler_cnt++;
+    static uint32_t i;
+    //uint32_t led_to_invert = ((i++) % LEDS_NUMBER);
 
     switch (event_type)
     {
     case NRF_TIMER_EVENT_COMPARE0:
-        //NRF_LOG_INFO("timer_event_handler called. %d", i);
-        NRF_LOG_INFO("timer_event_handler called. %d", timer_event_handler_cnt);
+
+        NRF_LOG_INFO("timer_event_handler called. %d", i);
 
         //bsp_board_led_invert(led_to_invert);
 
-        //time_counter++;
         if (stopper_timer_mode == TIMER_MODE)
         {
             tenth_of_seconds--;
@@ -243,20 +235,6 @@ void timer_event_handler(nrf_timer_event_t event_type, void *p_context)
         //Do nothing.
         break;
     }
-    /*
-    if (timer_event_handler_cnt == expiry_time)
-    {
-        timer_expired = true;
-        nrf_drv_timer_disable(&TIMER_TEST);
-        NRF_LOG_INFO("Timer expired.");
-        st7735_sleep_in();
-        set_display_pwm(0);
-
-        timer_event_handler_cnt = 0;
-        //ENTER_SYSTEM_ON_SLEEP_MODE();
-        //nrf_pwr_mgmt_run();
-    }
-    */
 }
 
 void start_stopper_timer(nrfx_timer_event_handler_t timer_event_cb, stopper_timer_mode_t mode, uint8_t minutes)
@@ -284,6 +262,52 @@ void start_stopper_timer(nrfx_timer_event_handler_t timer_event_cb, stopper_time
     nrf_drv_timer_extended_compare(&TIMER_TEST, NRF_TIMER_CC_CHANNEL0, time_ticks, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
 
     nrf_drv_timer_enable(&TIMER_TEST);
+}
+
+void start_gesture_imu_timer(nrfx_timer_event_handler_t timer_event_cb)
+{
+    nrf_drv_timer_disable(&TIMER_TEST);
+    nrf_drv_timer_uninit(&TIMER_TEST);
+    uint32_t err_code;
+
+    /* Timer ******************************************************************/
+    uint32_t time_ms = 1; //Time(in miliseconds) between consecutive compare events.
+    uint32_t time_ticks;
+    err_code = NRF_SUCCESS;
+
+    nrf_drv_timer_config_t timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
+    timer_cfg.frequency = NRF_TIMER_FREQ_62500Hz;
+    err_code = nrf_drv_timer_init(&TIMER_TEST, &timer_cfg, timer_event_cb);
+    APP_ERROR_CHECK(err_code);
+
+    time_ticks = nrf_drv_timer_ms_to_ticks(&TIMER_TEST, time_ms);
+
+    nrf_drv_timer_extended_compare(&TIMER_TEST, NRF_TIMER_CC_CHANNEL0, time_ticks, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
+
+    nrf_drv_timer_enable(&TIMER_TEST);
+}
+
+void gesture_imu_timer_event_handler(nrf_timer_event_t event_type, void *p_context)
+{
+    //uint32_t led_to_invert = ((i++) % LEDS_NUMBER);
+
+    switch (event_type)
+    {
+    case NRF_TIMER_EVENT_COMPARE0:
+        //NRF_LOG_INFO("timer_event_handler called. %d", i);
+        //bsp_board_led_invert(led_to_invert);
+        gesture_timer_cnt++;
+
+        if (gesture_timer_cnt % 1000 == 0)
+        {
+            //NRF_LOG_INFO("1 sec");
+            //gesture_timer_cnt = 0;
+        }
+        break;
+    default:
+        //Do nothing.
+        break;
+    }
 }
 
 /******************************************************************************/
@@ -343,25 +367,17 @@ int main(void)
 
     i2c_init();
     gesture_init();
-
     nrf_delay_ms(100);
-    
-    //lsm6dsox_multi_conf_init();
 
-    //lsm6dsox_fsm_init();
-
-    fsm_multiconf_init();
-
-    //lsm6dsox_tap_init();
-    //lsm6dsox_read_data_init();
-
-    //lsm6dsox_fifo_pedo_init();
-
-    
+    lsm6dsox_fsm_multiconf_init();
 
     /* Display ****************************************************************/
     init_display_pwm();
     st7735_sleep_out();
+    set_display_pwm(5);
+    start_display_keepalive();
+
+    start_gesture_imu_timer(gesture_imu_timer_event_handler);
 
     /* Buzzer *****************************************************************/
     /*
@@ -386,31 +402,36 @@ int main(void)
     /**************************************************************************/
     while (true)
     {
-        /*
         gesture_received = apds9960_read_gesture();
         apds9960_gesture_to_uart(gesture_received);
 
         if (gesture_received == APDS9960_RIGHT)
         {
-            prev(&current_menu);
-            st7735_sleep_out();
-            //APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 5));
-            set_display_pwm(5);
-            timer_event_handler_cnt = 0;
-            //start_keepalive_timer(timer_event_handler);
+            NRF_LOG_INFO("gesture_imu_timer_cnt: %d", gesture_timer_cnt);
 
-            start_display_keepalive();
+            uint32_t diff = abs(gesture_timer_cnt - button1_pressed_cnt);
+            NRF_LOG_INFO("DIFF: %d", diff);
+            if (diff < 500)
+            {
+                prev(&current_menu);
+                st7735_sleep_out();
+                set_display_pwm(5);
+                start_display_keepalive();
+            }
         }
         else if (gesture_received == APDS9960_LEFT)
         {
-            next(&current_menu);
-            st7735_sleep_out();
-            //APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 5));
-            set_display_pwm(5);
-            timer_event_handler_cnt = 0;
-            //start_keepalive_timer(timer_event_handler);
+            NRF_LOG_INFO("gesture_imu_timer_cnt: %d", gesture_timer_cnt);
 
-            start_display_keepalive();
+            uint32_t diff = abs(gesture_timer_cnt - button1_pressed_cnt);
+            NRF_LOG_INFO("DIFF: %d", diff);
+            if (diff < 500)
+            {
+                next(&current_menu);
+                st7735_sleep_out();
+                set_display_pwm(5);
+                start_display_keepalive();
+            }
         }
         else if (gesture_received == ADPS9960_INVALID)
         {
@@ -418,11 +439,11 @@ int main(void)
             //NRF_LOG_INFO("WHILE");
         }
         nrf_delay_ms(50);
-        */
 
         /**********************************************************************/
 
         //ez egy kicsit szétcseszi a gesture-t....
+        /*
         if (RTT_GetKey())
         {
             NRF_LOG_INFO("Received from RTT Viewer: %s, %d", RTT_String, strlen(RTT_String));
@@ -440,6 +461,7 @@ int main(void)
                 NRF_LOG_INFO("Other...");
             }
         }
+        */
     }
 }
 
