@@ -430,7 +430,9 @@ const ucf_line_t lsm6dsox_yoga_pose_recognition[] = {
 void lsm6dsox_multi_conf_init(void)
 {
     /* Variable declaration */
-    lsm6dsox_pin_int2_route_t pin_int2_route;
+    //lsm6dsox_pin_int2_route_t pin_int2_route;
+    lsm6dsox_pin_int1_route_t pin_int1_route;
+
     lsm6dsox_emb_sens_t emb_sens;
     
     uint32_t i;
@@ -555,6 +557,7 @@ void lsm6dsox_multi_conf_init(void)
     lsm6dsox_pedo_sens_set(&g_dev_ctx, LSM6DSOX_FALSE_STEP_REJ_ADV_MODE);
 
     /* Route signals on interrupt pin 1 */
+    /*
     lsm6dsox_pin_int2_route_get(&g_dev_ctx, NULL, &pin_int2_route);
     pin_int2_route.mlc1 = PROPERTY_ENABLE;
     pin_int2_route.step_detector = PROPERTY_ENABLE;
@@ -565,6 +568,20 @@ void lsm6dsox_multi_conf_init(void)
     //pin_int2_route.six_d = PROPERTY_ENABLE;
     //pin_int2_route.free_fall = PROPERTY_ENABLE;
     lsm6dsox_pin_int2_route_set(&g_dev_ctx, NULL, pin_int2_route);
+    */
+
+   lsm6dsox_pin_int1_route_get(&g_dev_ctx, &pin_int1_route);
+    pin_int1_route.mlc1 = PROPERTY_ENABLE;
+    pin_int1_route.step_detector = PROPERTY_ENABLE;
+    //pin_int1_route.wake_up = PROPERTY_ENABLE;
+    //pin_int1_route.tilt = PROPERTY_ENABLE;
+    pin_int1_route.double_tap = PROPERTY_ENABLE;
+    pin_int1_route.single_tap = PROPERTY_ENABLE;
+    //pin_int1_route.six_d = PROPERTY_ENABLE;
+    //pin_int1_route.free_fall = PROPERTY_ENABLE;
+    lsm6dsox_pin_int1_route_set(&g_dev_ctx, pin_int1_route);
+
+
     /* Configure interrupt pin mode notification */
     lsm6dsox_int_notification_set(&g_dev_ctx, LSM6DSOX_BASE_PULSED_EMB_LATCHED);
 
@@ -575,6 +592,7 @@ void lsm6dsox_multi_conf_init(void)
    * Selected data rate have to be equal or greater with respect
    * with MLC data rate.
    */
+    
     lsm6dsox_xl_data_rate_set(&g_dev_ctx, LSM6DSOX_XL_ODR_417Hz);
     lsm6dsox_gy_data_rate_set(&g_dev_ctx, LSM6DSOX_GY_ODR_208Hz);
 
@@ -619,13 +637,14 @@ void lsm6dsox_multi_conf_irq_handler(void)
         sprintf((char *)tx_buffer, "steps :%d\r\n", steps);
         tx_com(tx_buffer, strlen((char const *)tx_buffer));
     }
+    /*
     if (status.mlc1)
     {
         lsm6dsox_mlc_out_get(&g_dev_ctx, mlc_out);
         sprintf((char *)tx_buffer, "Detect MLC interrupt code: %02X\r\n",
                 mlc_out[0]);
         tx_com(tx_buffer, strlen((char const *)tx_buffer));
-    }
+    }*/
     if (status.double_tap)
     {
         sprintf((char *)tx_buffer, "D-Tap: ");
@@ -808,8 +827,11 @@ void lsm6dsox_fsm_init(void)
 
 
   /* Set Output Data Rate */
-  lsm6dsox_xl_data_rate_set(&g_dev_ctx, LSM6DSOX_XL_ODR_104Hz);
-  lsm6dsox_gy_data_rate_set(&g_dev_ctx, LSM6DSOX_GY_ODR_104Hz);
+  //lsm6dsox_xl_data_rate_set(&g_dev_ctx, LSM6DSOX_XL_ODR_104Hz);
+  //lsm6dsox_gy_data_rate_set(&g_dev_ctx, LSM6DSOX_GY_ODR_104Hz);
+
+      lsm6dsox_xl_data_rate_set(&g_dev_ctx, LSM6DSOX_XL_ODR_417Hz);
+    lsm6dsox_gy_data_rate_set(&g_dev_ctx, LSM6DSOX_GY_ODR_208Hz);
 
 #if 0
   /* Main loop */
